@@ -34,12 +34,12 @@
 #include <stdarg.h>
 
 enum class loggingLevel : uint8_t {
-    None = 0,            // Not logging anything at all
+    None     = 0,        // Not logging anything at all
     Critical = 1,        // only logging critical errors
-    Error = 2,           // logging all errors
-    Warning = 3,         // logging all warnings and all errors
-    Info = 4,            // logging errors, warnings and useful info (release)
-    Debug = 5            // logging everything (including debug info)
+    Error    = 2,        // logging all errors
+    Warning  = 3,        // logging all warnings and all errors
+    Info     = 4,        // logging errors, warnings and useful info (release)
+    Debug    = 5         // logging everything (including debug info)
 };
 
 class uLog {
@@ -69,16 +69,16 @@ class uLog {
 #ifndef UnitTesting
   private:        // commented out during unit testing
 #endif
-    void output();                                                // send to output, Serial for the time being
-    void logTimestamp();                                          // add timestamp to the buffer
-    bool checkLoggingLevel(loggingLevel itemLoggingLevel);        // check if this msg needs to be logged, comparing msg level vs logger level
-    bool checkLogBufferLevel(uint32_t itemLength);                // check if there is sufficient space in the buffer to add the msg
-    static constexpr uint32_t maxItemLength = 128;                // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
-    static constexpr uint32_t bufferLength = 1024;                // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
-    char logBuffer[bufferLength + 1];                             // buffer to store logdata when output is not yet available. + 1 for terminating zero
-    uint32_t bufferLevel = 0;                                     // keeping track of how much data is in the buffer
-    loggingLevel theLoggingLevel[4];                              // controls what amount of information to log : from nothing to everything. There is a stack of 4 levels, so pushing and popping is possible
-    bool outputIsAvailable = false;                               // by default the output is not available and needs to be activated first
-    bool includeTimestamp = false;                                // by default the output lines are not prefixed with a timestamp
-    static constexpr uint32_t timestampLength = 6;                // number of digits to use for timestamps
+    void output();                                                      // send to output, Serial for the time being
+    void logTimestamp();                                                // add timestamp to the buffer
+    bool checkLoggingLevel(loggingLevel itemLoggingLevel) const;        // check if this msg needs to be logged, comparing msg level vs logger level
+    bool checkLogBufferLevel(uint32_t itemLength) const;                // check if there is sufficient space in the buffer to add the msg
+    static constexpr uint32_t maxItemLength = 128;                      // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
+    static constexpr uint32_t bufferLength  = 1024;                     // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
+    char logBuffer[bufferLength + 1];                                   // buffer to store logdata when output is not yet available. + 1 for terminating zero
+    uint32_t bufferLevel = 0;                                           // keeping track of how much data is in the buffer
+    loggingLevel theLoggingLevel[4];                                    // controls what amount of information to log : from nothing to everything. There is a stack of 4 levels, so pushing and popping is possible
+    bool outputIsAvailable                    = false;                  // by default the output is not available and needs to be activated first
+    bool includeTimestamp                     = false;                  // by default the output lines are not prefixed with a timestamp
+    static constexpr uint32_t timestampLength = 6;                      // number of digits to use for timestamps
 };

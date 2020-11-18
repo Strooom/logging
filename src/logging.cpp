@@ -145,10 +145,10 @@ void uLog::logTimestamp() {
     }
 }
 
-bool uLog::checkLoggingLevel(loggingLevel itemLoggingLevel) {
+bool uLog::checkLoggingLevel(loggingLevel itemLoggingLevel) const {
     return (itemLoggingLevel <= theLoggingLevel[0]);
 }
 
-bool uLog::checkLogBufferLevel(uint32_t itemLength) {
+bool uLog::checkLogBufferLevel(uint32_t itemLength) const {
     return (bufferLength >= (bufferLevel + itemLength));
 }
