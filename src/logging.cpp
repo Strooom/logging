@@ -40,7 +40,7 @@ uLog::uLog(const loggingLevel initialLoggingLevel, const bool initialIncludeTime
     theLoggingLevel[1] = initialLoggingLevel;        //
     theLoggingLevel[2] = initialLoggingLevel;        //
     theLoggingLevel[3] = initialLoggingLevel;        //
-    logBuffer[0] = 0x00;                             // initialize the logBuffer to empty string
+    logBuffer[0]       = 0x00;                       // initialize the logBuffer to empty string
 }
 
 void uLog::log(loggingLevel itemLoggingLevel, const char* aText) {
@@ -117,7 +117,7 @@ void uLog::output() {
         Serial.print(logBuffer);
 #endif
         logBuffer[0] = 0x00;        // reset logBuffer to empty string : terminating zero
-        bufferLevel = 0;            // setting level back to zero
+        bufferLevel  = 0;           // setting level back to zero
     }
 }
 
@@ -129,8 +129,8 @@ void uLog::logTimestamp() {
 #else
     itoa(millis(), tmpStr, 10);        // convert millis to a string
 #endif
-    uint32_t length = strnlen(tmpStr, timestampLength);        // measure the length of the resulting string
-    uint32_t nmbrSpaces = timestampLength - length;            // calculate how many leading spaces we need
+    uint32_t length     = strnlen(tmpStr, timestampLength);        // measure the length of the resulting string
+    uint32_t nmbrSpaces = timestampLength - length;                // calculate how many leading spaces we need
 
     for (uint8_t x = 0; x < nmbrSpaces; x++) {
         spaces[x] = ' ';
