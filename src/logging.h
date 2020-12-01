@@ -61,6 +61,7 @@ class uLog {
     void log(loggingLevel theLevel, const char* aText);                   // appends msg to loggingBuffer whithout trying to output immediately
     void output(loggingLevel theLevel, const char* aText);                // appends msg and tries to output immediately - this output may be blocking
     void snprintf(loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
+    void flush();                                                         // outputs everything already in the buffer
 
     // ----------------------------------
     // internal data and helper functions

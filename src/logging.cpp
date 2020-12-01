@@ -110,6 +110,10 @@ void uLog::snprintf(loggingLevel itemLoggingLevel, const char* format, ...) {
     }
 }
 
+void uLog::flush() {
+    output();
+}
+
 void uLog::output() {
     if (outputIsAvailable)        // only when output is available can we really send something there. If not we just keep it in the buffer for later..
     {
