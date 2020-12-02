@@ -117,11 +117,13 @@ void uLog::flush() {
 void uLog::output() {
     if (outputIsAvailable)        // only when output is available can we really send something there. If not we just keep it in the buffer for later..
     {
+        if (bufferLevel > 0) {
 #ifndef WIN32
-        Serial.print(logBuffer);
+            Serial.print(logBuffer);
 #endif
-        logBuffer[0] = 0x00;        // reset logBuffer to empty string : terminating zero
-        bufferLevel  = 0;           // setting level back to zero
+            logBuffer[0] = 0x00;        // reset logBuffer to empty string : terminating zero
+            bufferLevel  = 0;           // setting level back to zero
+        }
     }
 }
 
