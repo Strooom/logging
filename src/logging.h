@@ -20,6 +20,7 @@
 // V 2.0.0 08-10-2020 Made it simpler by providing less public methods, but making them more flexible. Did extensive unit testing for robustness.
 // Example of using snprintf :  theLog.snprintf(loggingLevel::Debug, "Error in %s on line %d\n", __FILE__, __LINE__);
 // V2.1.0 11-11-2020 : Added the concept of a stack for loggingLevels (currently fixed to 4 elements depth). This allows you to temporarily change the loggingLevel and afterwards return to the previous level with simple push pop operation
+// V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io Arduino target
 
 #pragma once
 
