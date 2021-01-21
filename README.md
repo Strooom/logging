@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/Strooom/Logging.svg?branch=main)](https://travis-ci.com/Strooom/Logging)
 # logging
 simple logging for Arduino framework
 
