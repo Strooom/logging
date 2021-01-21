@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.com/Strooom/Logging.svg?branch=main)](https://travis-ci.com/Strooom/Logging)
+[![Build Status](https://travis-ci.com/Strooom/logging.svg?branch=main)](https://travis-ci.com/Strooom/logging)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/strooom/logging?color=green)
+
 # logging
 simple logging for Arduino framework
 
