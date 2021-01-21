@@ -1,0 +1,9 @@
+compile:
+  libraries: ~
+  platforms:
+    - mega2560
+
+unittest:
+  libraries: ~
+  platforms:
+    - mega2560
