@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 *.vcxitems
+examples/sync.ffs_db
+sync.ffs_db
