@@ -25,7 +25,7 @@ void setup()
 	theLog.output(loggingLevel::Warning, "Warning 1234 in Setup()");				// Message will not be logged, as Warning is less important than Error
 	theLog.output(loggingLevel::Critical, "Critical Error 1234 in Setup()");		// Message will be logged as Critical Error is more important than Error
 
-	theLog.setLoggingLevel(loggingLevel::Info);										// We can adjust the logging level in the code, so from now on, all items will be logged. See logging.h for available levels
+	theLog.pushLoggingLevel(loggingLevel::Info);									// We can adjust the logging level in the code, so from now on, all items will be logged. See logging.h for available levels
 	theLog.output(loggingLevel::Warning, "Warning 5678 in Setup()");				// Message will be logged, as Warning is more important than Info
 	}
 
