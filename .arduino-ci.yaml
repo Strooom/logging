@@ -1,9 +1,9 @@
 compile:
   libraries: ~
   platforms:
-    - mega2560
+    - uno
 
 unittest:
   libraries: ~
   platforms:
-    - mega2560
+    - uno
