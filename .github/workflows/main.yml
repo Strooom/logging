@@ -7,8 +7,7 @@ on: [push, pull_request]
 # will produce.
 jobs:
   # This is the name of the job - can be whatever.
-  test-matrix: Arduino Library Validation
- onfiguration.
+  test-matrix:
     strategy:
       matrix:
         arduino-platform: ["arduino:samd", "arduino:avr"]
