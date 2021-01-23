@@ -1,12 +1,44 @@
-name: A workflow for my Hello World file
-on: push
-
+name: Arduino Library Validation by @Strooom
+on: [push, pull_request]
+ 
+# This is the list of jobs that will be run concurrently.
+# Since we use a build matrix, the actual number of jobs
+# started depends on how many configurations the matrix
+# will produce.
 jobs:
-  build:
-    name: Hello world action
-    runs-on: ubuntu-latest
+  # This is the name of the job - can be whatever.
+  test-matrix: Arduino Library Validation
+ onfiguration.
+    strategy:
+      matrix:
+        arduino-platform: ["arduino:samd", "arduino:avr"]
+        include:
+          - arduino-platform: "arduino:samd"
+            fqbn: "arduino:samd:nano_33_iot"
+          - arduino-platform: "arduino:avr"
+            fqbn: "arduino:avr:uno"
+ 
+    runs-on: windows-latest
+ 
+    # This is the list of steps this job will run.
     steps:
-      - uses: actions/checkout@v1
-      - uses: ./action-a
-        with:
-          MY_NAME: "Mona"
+      # First of all, we clone the repo using the checkout action.
+      - name: Checkout
+        uses: actions/checkout@master
+ 
+      # We use the arduino/setup-arduino-cli action to install and
+      # configure the Arduino CLI on the system.
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1.0.0
+ 
+      # We then install the platform, which one will be determined
+      # dynamically by the build matrix.
+      - name: Install platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install ${{ matrix.arduino-platform }}
+ 
+      # Finally, we compile the sketch, using the FQBN that was set
+      # in the build matrix.
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./blink
