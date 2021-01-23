@@ -3,13 +3,12 @@ on: [push, pull_request]
 jobs:
   ArduinoLintjob:
     name: Run Arduino Lint
-    env:
-      compliance: strict
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: arduino/arduino-lint-action@v1
-
+        with:
+          compliance: strict
   arduino_ci:
     name: Build_Examples
     runs-on: ubuntu-latest
