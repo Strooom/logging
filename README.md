@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/Strooom/logging.svg?branch=main)](https://travis-ci.com/Strooom/logging)
+[![Arduino CI](https://github.com/Strooom/logging/workflows/Arduino_CI/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/strooom/logging?color=green)
 
 # logging
