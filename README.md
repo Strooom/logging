@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 [![Arduino CI](https://github.com/<OWNER>/<REPOSITORY>/workflows/Arduino%20Library%20Checks/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
-=======
-https://github.com/Strooom/logging/workflows/Arduino%20Library%20Checks/badge.svg
->>>>>>> 4ef0f6f7fb7a96e761a5e85aa1468ace168ef5bf
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/strooom/logging?color=green)
 
 # logging
