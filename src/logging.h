@@ -21,6 +21,7 @@
 // Example of using snprintf :  theLog.snprintf(loggingLevel::Debug, "Error in %s on line %d\n", __FILE__, __LINE__);
 // V2.1.0 11-11-2020 : Added the concept of a stack for loggingLevels (currently fixed to 4 elements depth). This allows you to temporarily change the loggingLevel and afterwards return to the previous level with simple push pop operation
 // V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io Arduino target
+// V2.3.0 15-06-2021 : Added colored output option using ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit This needs 'monitor_flags = --raw' in platformio.ini
 
 #pragma once
 
@@ -55,6 +56,7 @@ class uLog {
     loggingLevel getLoggingLevel() const;                   // returns the current loggingLevel
     void setOutputIsAvailable(bool isAvailable);            // set the outputIsAvailable
     void setIncludeTimestamp(bool includeTimestamp);        // set the includeTimestamp option
+    void setColoredOutput(bool coloredOutput);              // set the coloredOutput on or off
 
     // ------------------------------
     // logging services
@@ -71,16 +73,21 @@ class uLog {
 #ifndef UnitTesting
   private:        // commented out during unit testing
 #endif
-    void output();                                                      // send to output, Serial for the time being
-    void logTimestamp();                                                // add timestamp to the buffer
+    void output();                                        // send to output, Serial for the time being
+    void logTimestamp();                                  // add timestamp to the buffer
+    void colorOutputPrefix(loggingLevel theLevel);        // add color output escape codes
+    void colorOutputPostfix();                            // add color output escape codes
+
     bool checkLoggingLevel(loggingLevel itemLoggingLevel) const;        // check if this msg needs to be logged, comparing msg level vs logger level
     bool checkLogBufferLevel(uint32_t itemLength) const;                // check if there is sufficient space in the buffer to add the msg
-    static constexpr uint32_t maxItemLength = 128;                      // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
-    static constexpr uint32_t bufferLength  = 1024;                     // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
-    char logBuffer[bufferLength + 1];                                   // buffer to store logdata when output is not yet available. + 1 for terminating zero
-    uint32_t bufferLevel = 0;                                           // keeping track of how much data is in the buffer
-    loggingLevel theLoggingLevel[4];                                    // controls what amount of information to log : from nothing to everything. There is a stack of 4 levels, so pushing and popping is possible
-    bool outputIsAvailable                    = false;                  // by default the output is not available and needs to be activated first
-    bool includeTimestamp                     = false;                  // by default the output lines are not prefixed with a timestamp
-    static constexpr uint32_t timestampLength = 6;                      // number of digits to use for timestamps
+
+    static constexpr uint32_t maxItemLength{128U};        // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
+    static constexpr uint32_t bufferLength{1024U};        // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
+    char logBuffer[bufferLength + 1U]{};                  // buffer to store logdata when output is not yet available. + 1 for terminating zero
+    uint32_t bufferLevel{0};                              // keeping track of how much data is in the buffer
+    loggingLevel theLoggingLevel[4U]{};                   // controls what amount of information to log : from nothing to everything. There is a stack of 4 levels, so pushing and popping is possible
+    bool outputIsAvailable{false};                        // by default the output is not available and needs to be activated first
+    bool includeTimestamp{false};                         // by default the output lines are not prefixed with a timestamp
+    bool coloredOutput{false};                            // by default the output lines are not prefixed with a timestamp
+    static constexpr uint32_t timestampLength{6};         // number of digits to use for timestamps
 };

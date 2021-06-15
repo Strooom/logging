@@ -10,16 +10,16 @@
 #include "logging.h"
 
 void uLog::pushLoggingLevel(loggingLevel newLevel) {
-    theLoggingLevel[3] = theLoggingLevel[2];
-    theLoggingLevel[2] = theLoggingLevel[1];
-    theLoggingLevel[1] = theLoggingLevel[0];
+    theLoggingLevel[3U] = theLoggingLevel[2U];
+    theLoggingLevel[2U] = theLoggingLevel[1U];
+    theLoggingLevel[1U] = theLoggingLevel[0];
     theLoggingLevel[0] = newLevel;
 }
 
 loggingLevel uLog::popLoggingLevel() {
-    theLoggingLevel[0] = theLoggingLevel[1];
-    theLoggingLevel[1] = theLoggingLevel[2];
-    theLoggingLevel[2] = theLoggingLevel[3];
+    theLoggingLevel[0] = theLoggingLevel[1U];
+    theLoggingLevel[1U] = theLoggingLevel[2U];
+    theLoggingLevel[2U] = theLoggingLevel[3U];
     return theLoggingLevel[0];
 }
 
@@ -35,6 +35,10 @@ void uLog::setIncludeTimestamp(bool newSetting) {
     includeTimestamp = newSetting;
 }
 
+void setColoredOutput(bool newSetting) {
+    coloredOutput = newSetting;
+}
+
 uLog::uLog(const loggingLevel initialLoggingLevel, const bool initialIncludeTimestamp) : includeTimestamp(initialIncludeTimestamp) {
     theLoggingLevel[0] = initialLoggingLevel;        // set the complete loggingLevel stack to the initial level
     theLoggingLevel[1] = initialLoggingLevel;        //
@@ -45,37 +49,40 @@ uLog::uLog(const loggingLevel initialLoggingLevel, const bool initialIncludeTime
 
 void uLog::log(loggingLevel itemLoggingLevel, const char* aText) {
     if (checkLoggingLevel(itemLoggingLevel)) {
-        uint32_t length = 0;        // keeps track of length of string fragments, goes into strncat()
+        uint32_t length{0};        // keeps track of length of string fragments, goes into strncat()
 
-        if (includeTimestamp)        // should we add a timestamp prefix ?
-        {
+        if (outputInColor) {
+            colorOutputPrefix(itemLoggingLevel);
+        }
+
+        if (includeTimestamp) {
             logTimestamp();
         }
 
-        char tmpStr[17];        // temporary string to hold the description of the type of message
+        char tmpStr[10U];        // temporary string to hold the description of the type of message
 
         switch (itemLoggingLevel) {
             case loggingLevel::Critical:
-                strncpy(tmpStr, "Critical-", 16);
+                strncpy(tmpStr, "Critical ", 10U);
                 break;
             case loggingLevel::Error:
-                strncpy(tmpStr, "Error-", 16);
+                strncpy(tmpStr, "Error    ", 10U);
                 break;
             case loggingLevel::Warning:
-                strncpy(tmpStr, "Warning-", 16);
+                strncpy(tmpStr, "Warning  ", 10U);
                 break;
             case loggingLevel::Info:
-                strncpy(tmpStr, "Info-", 16);
+                strncpy(tmpStr, "Info     ", 10U);
                 break;
             case loggingLevel::Debug:
-                strncpy(tmpStr, "Debug-", 16);
+                strncpy(tmpStr, "Debug    ", 10U);
                 break;
             case loggingLevel::None:
             default:
-                strncpy(tmpStr, "", 16);
+                strcpy(tmpStr, "");
                 break;
         }
-        length = strnlen(tmpStr, 16);
+        length = strnlen(tmpStr, 10U);
         if (checkLogBufferLevel(length)) {
             strncat(logBuffer, tmpStr, length);
             bufferLevel += length;
@@ -87,7 +94,11 @@ void uLog::log(loggingLevel itemLoggingLevel, const char* aText) {
             bufferLevel += length;
         }
 
-        if (checkLogBufferLevel(1)) {
+        if (outputInColor) {
+            colorOutputPostfix();
+        }
+
+        if (checkLogBufferLevel(1U)) {
             strcat(logBuffer, "\n");
             bufferLevel++;
         }
@@ -130,12 +141,12 @@ void uLog::output() {
 }
 
 void uLog::logTimestamp() {
-    char tmpStr[20];        // temporary string storage to prepare a timestamp string
-    char spaces[20];        // temporary string storage to prepare leading spaces
+    char tmpStr[20U];        // temporary string storage to prepare a timestamp string
+    char spaces[20U];        // temporary string storage to prepare leading spaces
 #ifdef WIN32
     strcpy(tmpStr, "time");        // on Windows unit testing, we put some dummy value here...
 #else
-    itoa(millis(), tmpStr, 10);        // convert millis to a string
+    itoa(millis(), tmpStr, 10U);        // convert millis to a string
 #endif
     uint32_t length     = strnlen(tmpStr, timestampLength);        // measure the length of the resulting string
     uint32_t nmbrSpaces = timestampLength - length;                // calculate how many leading spaces we need
@@ -145,11 +156,11 @@ void uLog::logTimestamp() {
     }
     spaces[nmbrSpaces] = 0x00;
 
-    if (checkLogBufferLevel(timestampLength + 1)) {
+    if (checkLogBufferLevel(timestampLength + 1U)) {
         strcat(logBuffer, spaces);
         strcat(logBuffer, tmpStr);
         strcat(logBuffer, "-");
-        bufferLevel += (timestampLength + 1);
+        bufferLevel += (timestampLength + 1U);
     }
 }
 
@@ -159,4 +170,37 @@ bool uLog::checkLoggingLevel(loggingLevel itemLoggingLevel) const {
 
 bool uLog::checkLogBufferLevel(uint32_t itemLength) const {
     return (bufferLength >= (bufferLevel + itemLength));
+}
+
+void uLog::colorOutputPrefix(loggingLevel theLevel) {
+    if (checkLogBufferLevel(5U)) {
+        switch (itemLoggingLevel) {
+            case loggingLevel::Critical:
+                strncat(logBuffer, "␛[31m", 5U);
+                break;
+            case loggingLevel::Error:
+                strncat(logBuffer, "␛[31m", 5U);
+                break;
+            case loggingLevel::Warning:
+                strncat(logBuffer, "␛[33m", 5U);
+                break;
+            case loggingLevel::Info:
+                strncat(logBuffer, "␛[37m", 5U);
+                break;
+            case loggingLevel::Debug:
+                strncat(logBuffer, "␛[30m", 5U);
+                break;
+            case loggingLevel::None:
+            default:
+                break;
+        }
+        bufferLevel += 5U;
+    }
+}
+
+void uLog::colorOutputPostfix() {
+    if (checkLogBufferLevel(4U)) {
+        strncat(logBuffer, "␛[0m", 4U);
+        bufferLevel += 4U;
+    }
 }
