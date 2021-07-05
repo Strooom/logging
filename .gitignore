@@ -262,3 +262,6 @@ __pycache__/
 *.vcxitems
 examples/sync.ffs_db
 sync.ffs_db
+logging.sln
+.gitignore
+logging.vcxitems.filters

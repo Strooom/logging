@@ -35,7 +35,7 @@ void uLog::setIncludeTimestamp(bool newSetting) {
     includeTimestamp = newSetting;
 }
 
-void setColoredOutput(bool newSetting) {
+void uLog::setColoredOutput(bool newSetting) {
     coloredOutput = newSetting;
 }
 
@@ -51,7 +51,7 @@ void uLog::log(loggingLevel itemLoggingLevel, const char* aText) {
     if (checkLoggingLevel(itemLoggingLevel)) {
         uint32_t length{0};        // keeps track of length of string fragments, goes into strncat()
 
-        if (outputInColor) {
+        if (coloredOutput) {
             colorOutputPrefix(itemLoggingLevel);
         }
 
@@ -94,7 +94,7 @@ void uLog::log(loggingLevel itemLoggingLevel, const char* aText) {
             bufferLevel += length;
         }
 
-        if (outputInColor) {
+        if (coloredOutput) {
             colorOutputPostfix();
         }
 
@@ -172,35 +172,35 @@ bool uLog::checkLogBufferLevel(uint32_t itemLength) const {
     return (bufferLength >= (bufferLevel + itemLength));
 }
 
-void uLog::colorOutputPrefix(loggingLevel theLevel) {
-    if (checkLogBufferLevel(5U)) {
+void uLog::colorOutputPrefix(loggingLevel itemLoggingLevel) {
+    if (checkLogBufferLevel(10U)) {
         switch (itemLoggingLevel) {
             case loggingLevel::Critical:
-                strncat(logBuffer, "␛[31m", 5U);
+                strncat(logBuffer, "\033[37;41m", 10U);
                 break;
             case loggingLevel::Error:
-                strncat(logBuffer, "␛[31m", 5U);
+                strncat(logBuffer, "\033[31;40m", 10U);
                 break;
             case loggingLevel::Warning:
-                strncat(logBuffer, "␛[33m", 5U);
+                strncat(logBuffer, "\033[33;40m", 10U);
                 break;
             case loggingLevel::Info:
-                strncat(logBuffer, "␛[37m", 5U);
+                strncat(logBuffer, "\033[36;40m", 10U);
                 break;
             case loggingLevel::Debug:
-                strncat(logBuffer, "␛[30m", 5U);
+                strncat(logBuffer, "\033[37;40m", 10U);
                 break;
             case loggingLevel::None:
             default:
                 break;
         }
-        bufferLevel += 5U;
+        bufferLevel += 8U;
     }
 }
 
 void uLog::colorOutputPostfix() {
     if (checkLogBufferLevel(4U)) {
-        strncat(logBuffer, "␛[0m", 4U);
+        strncat(logBuffer, "\033[0m", 4U);
         bufferLevel += 4U;
     }
 }

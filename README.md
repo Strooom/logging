@@ -14,10 +14,15 @@ Still there are a number of problems with this approach :
 This logging class provides a solution :
 * It creates a global object, so it is available from the real start of your program
 * It will buffer the logged items, until the output becomes available
-* It can easily be adapt to any kind of output
+* It can easily be adapted to any kind of output
 
 V 1.0.0 25-08-2020 First release
+
 V 2.0.0 08-10-2020 Made it simpler by providing less public methods, but making them more flexible. Did extensive unit testing for robustness.
 Example of using snprintf :  theLog.snprintf(loggingLevel::Debug, "Error in %s on line %d\n", __FILE__, __LINE__);
+
 V2.1.0 11-11-2020 : Added the concept of a stack for loggingLevels (currently fixed to 4 elements depth). This allows you to temporarily change the loggingLevel and afterwards return to the previous level with simple push pop operation
-V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io Arduino target
+
+V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io. Arduino target
+
+V2.3.0 15-06-2021 : Added colored output option using ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit This needs 'monitor_flags = --raw' in platformio.ini
