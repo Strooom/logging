@@ -21,7 +21,8 @@
 // Example of using snprintf :  theLog.snprintf(loggingLevel::Debug, "Error in %s on line %d\n", __FILE__, __LINE__);
 // V2.1.0 11-11-2020 : Added the concept of a stack for loggingLevels (currently fixed to 4 elements depth). This allows you to temporarily change the loggingLevel and afterwards return to the previous level with simple push pop operation
 // V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io Arduino target
-// V2.3.0 15-06-2021 : Added colored output option using ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit This needs 'monitor_flags = --raw' in platformio.ini
+// V2.3.0            : Added colored output
+// V3.0.0 03-11-2021 : Added a concept of subsystem, where each subsystem has its own loggingLevel
 
 #pragma once
 
@@ -34,6 +35,7 @@
 #include <iostream>
 #endif
 #include <stdarg.h>
+#include "subsystems.h"
 
 enum class loggingLevel : uint8_t {
     None     = 0,        // Not logging anything at all
@@ -46,25 +48,27 @@ enum class loggingLevel : uint8_t {
 
 class uLog {
   public:
-    explicit uLog(const loggingLevel initialLoggingLevel = loggingLevel::Debug, const bool includeTimestamp = true);        // constructor
+    explicit uLog();        // constructor
 
     // ------------------------------
     // configuring the logging object
     // ------------------------------
-    void pushLoggingLevel(loggingLevel newLevel);           // set the loggingLevel, current level on the stack
-    loggingLevel popLoggingLevel();                         // return to previous loggingLevel, popping one level from the stack, returns the new level
-    loggingLevel getLoggingLevel() const;                   // returns the current loggingLevel
-    void setOutputIsAvailable(bool isAvailable);            // set the outputIsAvailable
-    void setIncludeTimestamp(bool includeTimestamp);        // set the includeTimestamp option
-    void setColoredOutput(bool coloredOutput);              // set the coloredOutput on or off
+    void setLoggingLevel(loggingLevel newLevel);                                 // set the loggingLevel for a all subsystem
+    void setLoggingLevel(subSystems theSubSystem, loggingLevel newLevel);        // set the loggingLevel for a given subsystem
+    loggingLevel getLoggingLevel(subSystems theSubSystem) const;                 // returns the current loggingLevel for given subsystem
+    void setOutputIsAvailable(bool isAvailable);                                 // set the outputIsAvailable
+    void setIncludeTimestamp(bool includeTimestamp);                             // set the includeTimestamp option
+    void setColoredOutput(bool newSetting);
+    void setIndentLevel(uint32_t newLevel);
+    uint32_t getIndentLevel();
 
     // ------------------------------
     // logging services
     // ------------------------------
-    void log(loggingLevel theLevel, const char* aText);                   // appends msg to loggingBuffer whithout trying to output immediately
-    void output(loggingLevel theLevel, const char* aText);                // appends msg and tries to output immediately - this output may be blocking
-    void snprintf(loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
-    void flush();                                                         // outputs everything already in the buffer
+    void log(subSystems theSubSystem, loggingLevel theLevel, const char* aText);                   // appends msg to loggingBuffer whithout trying to output immediately
+    void output(subSystems theSubSystem, loggingLevel theLevel, const char* aText);                // appends msg and tries to output immediately - this output may be blocking
+    void snprintf(subSystems theSubSystem, loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
+    void flush();                                                                                  // outputs everything already in the buffer
 
     // ----------------------------------
     // internal data and helper functions
@@ -73,21 +77,20 @@ class uLog {
 #ifndef UnitTesting
   private:        // commented out during unit testing
 #endif
-    void output();                                        // send to output, Serial for the time being
-    void logTimestamp();                                  // add timestamp to the buffer
-    void colorOutputPrefix(loggingLevel theLevel);        // add color output escape codes
-    void colorOutputPostfix();                            // add color output escape codes
-
-    bool checkLoggingLevel(loggingLevel itemLoggingLevel) const;        // check if this msg needs to be logged, comparing msg level vs logger level
-    bool checkLogBufferLevel(uint32_t itemLength) const;                // check if there is sufficient space in the buffer to add the msg
-
-    static constexpr uint32_t maxItemLength{128U};        // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
-    static constexpr uint32_t bufferLength{1024U};        // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
-    char logBuffer[bufferLength + 1U]{};                  // buffer to store logdata when output is not yet available. + 1 for terminating zero
-    uint32_t bufferLevel{0};                              // keeping track of how much data is in the buffer
-    loggingLevel theLoggingLevel[4U]{};                   // controls what amount of information to log : from nothing to everything. There is a stack of 4 levels, so pushing and popping is possible
-    bool outputIsAvailable{false};                        // by default the output is not available and needs to be activated first
-    bool includeTimestamp{false};                         // by default the output lines are not prefixed with a timestamp
-    bool coloredOutput{false};                            // by default the output lines are not prefixed with a timestamp
-    static constexpr uint32_t timestampLength{6};         // number of digits to use for timestamps
+    void output();                                                                                              // send to output, Serial for the time being
+    void logTimestamp();                                                                                        // add timestamp to the buffer
+    void colorOutputPrefix(loggingLevel theLevel);                                                              // add color output escape codes
+    void colorOutputPostfix();                                                                                  // add color output escape codes
+    bool checkLoggingLevel(subSystems theSubSystem, loggingLevel itemLoggingLevel) const;                       // check if this msg needs to be logged, comparing msg level vs logger level
+    bool checkLogBufferLevel(uint32_t itemLength) const;                                                        // check if there is sufficient space in the buffer to add the msg
+    static constexpr uint32_t maxItemLength = 128;                                                              // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
+    static constexpr uint32_t bufferLength  = 1024;                                                             // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
+    char logBuffer[bufferLength + 1];                                                                           // buffer to store logdata when output is not yet available. + 1 for terminating zero
+    uint32_t bufferLevel = 0;                                                                                   // keeping track of how much data is in the buffer
+    loggingLevel loggingLevels[static_cast<uint8_t>(subSystems::nmbrOfSubsystems)]{loggingLevel::Error};        // controls what amount of information to log : from nothing to everything. Default is 'errors'
+    bool outputIsAvailable = false;                                                                             // by default the output is not available and needs to be activated first
+    bool includeTimestamp  = false;                                                                             // by default the output lines are not prefixed with a timestamp
+    bool coloredOutput{false};                                                                                  // by default the output lines are not colored - only intended for Visual Studio Code terminal
+    static constexpr uint32_t timestampLength = 6;                                                              // number of digits to use for timestamps
+    uint32_t indentLevel{0};
 };

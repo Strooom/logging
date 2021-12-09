@@ -20,9 +20,9 @@ void setup() {
 
     theLog.setOutputIsAvailable(true);
     theLog.setColoredOutput(true);                                    // enable colored output - remember to set 'monitor_flags = --raw' in platformio.ini
-    theLog.output(loggingLevel::Info, "This is some info");           //
-    theLog.output(loggingLevel::Warning, "This is a warning");        //
-    theLog.output(loggingLevel::Error, "This is an error");           //
+    theLog.output(subSystem::general, loggingLevel::Info, "This is some info");           //
+    theLog.output(subSystem::general, loggingLevel::Warning, "This is a warning");        //
+    theLog.output(subSystem::general, loggingLevel::Error, "This is an error");           //
 }
 
 void loop() {

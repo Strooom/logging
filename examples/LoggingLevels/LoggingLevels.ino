@@ -21,12 +21,12 @@ void setup()
 
 	theLog.setOutputIsAvailable(true);
 
-	theLog.output(loggingLevel::Error, "Error 1234 in Setup()");					// Add logging statements in your code. This msg will be logged as the level of the msg is equal or higher than the overall logging level
-	theLog.output(loggingLevel::Warning, "Warning 1234 in Setup()");				// Message will not be logged, as Warning is less important than Error
-	theLog.output(loggingLevel::Critical, "Critical Error 1234 in Setup()");		// Message will be logged as Critical Error is more important than Error
+	theLog.output(subSystem::general, loggingLevel::Error, "Error 1234 in Setup()");					// Add logging statements in your code. This msg will be logged as the level of the msg is equal or higher than the overall logging level
+	theLog.output(subSystem::general, loggingLevel::Warning, "Warning 1234 in Setup()");				// Message will not be logged, as Warning is less important than Error
+	theLog.output(subSystem::general, loggingLevel::Critical, "Critical Error 1234 in Setup()");		// Message will be logged as Critical Error is more important than Error
 
-	theLog.pushLoggingLevel(loggingLevel::Info);									// We can adjust the logging level in the code, so from now on, all items will be logged. See logging.h for available levels
-	theLog.output(loggingLevel::Warning, "Warning 5678 in Setup()");				// Message will be logged, as Warning is more important than Info
+	theLog.setLoggingLevel(subSystem::general, loggingLevel::Info);									// We can adjust the logging level in the code, so from now on, all items will be logged. See logging.h for available levels
+	theLog.output(subSystem::general, loggingLevel::Warning, "Warning 5678 in Setup()");				// Message will be logged, as Warning is more important than Info
 	}
 
 void loop()

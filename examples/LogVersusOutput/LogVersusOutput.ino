@@ -21,17 +21,17 @@ void setup()
 
 	theLog.setOutputIsAvailable(true);
 
-	theLog.log(loggingLevel::Info, "Some message to be logged .................... in Setup()");	// .log() will add the message to the log, but not send the log to the ouput. 
-	theLog.log(loggingLevel::Info, "Another message to be logged ................. in Setup()");	// .log() returns faster than .output()
+	theLog.log(subSystem::general, loggingLevel::Info, "Some message to be logged .................... in Setup()");	// .log() will add the message to the log, but not send the log to the ouput. 
+	theLog.log(subSystem::general, loggingLevel::Info, "Another message to be logged ................. in Setup()");	// .log() returns faster than .output()
 
 	delay(2000);
 
-	theLog.output(loggingLevel::Info, "third message to be logged ................... in Setup()");	// .output() will add the message to the log AND send the log to the ouput.
-	theLog.output(loggingLevel::Info, "fourth message to be logged .................. in Setup()");	// all four lines will appear in the output after the 2 seconds delay, but with the correct timestamp
+	theLog.output(subSystem::general, loggingLevel::Info, "third message to be logged ................... in Setup()");	// .output() will add the message to the log AND send the log to the ouput.
+	theLog.output(subSystem::general, loggingLevel::Info, "fourth message to be logged .................. in Setup()");	// all four lines will appear in the output after the 2 seconds delay, but with the correct timestamp
 
 	delay(2000);
 	uint8_t value = 123;
-	theLog.snprintf(loggingLevel::Info, "This is how you can do printf kind of things in your logs : value = %d", value);	// .snprintf() always outputs immediately, as the underlying vprintf is slow anyway
+	theLog.snprintf(subSystem::general, loggingLevel::Info, "This is how you can do printf kind of things in your logs : value = %d", value);	// .snprintf() always outputs immediately, as the underlying vprintf is slow anyway
 	}
 
 void loop()
