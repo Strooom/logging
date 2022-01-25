@@ -62,6 +62,9 @@ class uLog {
     void setIndentLevel(uint32_t newLevel);
     uint32_t getIndentLevel();
 
+    void setTimeSource();              // sets a pointer to a function providing the timestamp prefix string.
+    void setWriteDestination();        // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
+
     // ------------------------------
     // logging services
     // ------------------------------
@@ -91,6 +94,10 @@ class uLog {
     bool outputIsAvailable = false;                                                                             // by default the output is not available and needs to be activated first
     bool includeTimestamp  = false;                                                                             // by default the output lines are not prefixed with a timestamp
     bool coloredOutput{false};                                                                                  // by default the output lines are not colored - only intended for Visual Studio Code terminal
-    static constexpr uint32_t timestampLength = 6;                                                              // number of digits to use for timestamps
     uint32_t indentLevel{0};
+
+    static constexpr uint32_t timestampLength = 6;        // number of digits to use for timestamps
+    bool (*getTime)(char*, uint32_t);                     // pointer to function returning timestamp as a string
+    bool (*writeOutput1)(char*);                           // pointer to function outputting the logged data - 1 goes to eg serial port
+    bool (*writeOutput2)(char*);                           // pointer to function outputting the logged data - 2 goes to eg network / mqtt
 };

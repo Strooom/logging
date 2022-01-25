@@ -7,6 +7,7 @@
 // ###                                                                       ###
 // #############################################################################
 
+#include <Arduino.h>
 #include "logging.h"
 
 void uLog::setLoggingLevel(loggingLevel newLevel) {
