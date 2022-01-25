@@ -1,7 +1,7 @@
 #include <unity.h>
 
 void test_initialization() {
-   TEST_ASSERT_TRUE(true); 
+   TEST_ASSERT_TRUE(false); 
 }
 
 int main(int argc, char **argv) {
