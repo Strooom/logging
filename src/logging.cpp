@@ -12,13 +12,12 @@
 #include <stdio.h>          // required for vsnprintf()
 #include "logging.h"        //
 
-
 uLog::uLog() {
 }
 
 bool uLog::checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const {
     bool result{false};
-    for (uint32_t i = 0; i < maxNmbrOuputs; i++) {        // for all outputs
+    for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
         if (outputs[i].isActive()) {
             if (itemLoggingLevel <= outputs[i].getLoggingLevel(theSubSystem)) {
                 result = true;
@@ -64,9 +63,9 @@ void uLog::flush() {
 }
 
 void uLog::output() {
-    if (level > 0) {                                          // if any items in buffer :
-        bool success{false};                                  // remembering if any of the outputs worked
-        for (uint32_t i = 0; i < maxNmbrOuputs; i++) {        // for all outputs
+    if (level > 0) {                                           // if any items in buffer :
+        bool success{false};                                   // remembering if any of the outputs worked
+        for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
             if (outputs[i].isActive()) {
                 if (outputs[i].write(items[head].contents)) {
                     success = true;
@@ -121,11 +120,11 @@ uint32_t uLog::pushItem() {
 void uLog::prepare(uint32_t outputIndex) {
     contents[0] = 0;        // clear temp buffer
 
-    if (outputs[outputIndex].isColored()) {
+    if (outputs[outputIndex].isColoredOutput()) {
         addColorOutputPrefix(items[head].theLoggingLevel);
     }
 
-    if (outputs[outputIndex].hasTimestamp()) {
+    if (outputs[outputIndex].hasTimestampIncluded()) {
         strcat(contents, items[head].timestamp);        // add timestamp string
     }
 
@@ -133,7 +132,7 @@ void uLog::prepare(uint32_t outputIndex) {
 
     strncat(contents, items[head].contents, 100U);        // add raw contents
 
-    if (outputs[outputIndex].isColored()) {
+    if (outputs[outputIndex].isColoredOutput()) {
         addColorOutputPostfix();
     }
 
@@ -168,5 +167,31 @@ void uLog::setTimeSource(bool (*aFunction)(char*, uint32_t)) {
 }
 
 void uLog::setOutput(uint32_t outputIndex, bool (*aFunction)(const char*)) {
-    outputs[outputIndex].setOutputDestination(aFunction);
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setOutputDestination(aFunction);
+    }
+}
+
+void uLog::setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel theLoggingLevel) {
+    outputs[outputIndex].setLoggingLevel(theSubSystem, theLoggingLevel);
+}
+
+void uLog::setColoredOutput(uint32_t outputIndex, bool newSetting) {
+    outputs[outputIndex].setColoredOutput(newSetting);
+}
+
+void uLog::setIncludeTimestamp(uint32_t outputIndex, bool newSetting) {
+    outputs[outputIndex].setIncludeTimestamp(newSetting);
+}
+
+loggingLevel uLog::getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem) {
+    return outputs[outputIndex].getLoggingLevel(theSubSystem);
+}
+
+bool uLog::isColoredOutput(uint32_t outputIndex) {
+    return outputs[outputIndex].isColoredOutput();
+}
+
+bool uLog::hasTimestampIncluded(uint32_t outputIndex) {
+    return outputs[outputIndex].hasTimestampIncluded();
 }

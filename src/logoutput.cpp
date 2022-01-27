@@ -36,10 +36,10 @@ bool logOutput::write(const char *theContents) const {
     return (*writeOutput)(theContents);
 }
 
-bool logOutput::isColored() const {
+bool logOutput::isColoredOutput() const {
     return colorOutput;
 }
 
-bool logOutput::hasTimestamp() const {
+bool logOutput::hasTimestampIncluded() const {
     return addTimestamp;
 }

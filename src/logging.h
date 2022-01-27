@@ -37,20 +37,20 @@ class uLog {
   public:
     explicit uLog();        // constructor
 
+    static constexpr uint32_t maxNmbrOutputs = 2;        //
+    static constexpr uint32_t length         = 4;        // length of the items circular buffer for items
+
     // ------------------------------
     // configuring the logging object
     // ------------------------------
-    static constexpr uint32_t maxNmbrOuputs = 2;                                 //
-    logOutput outputs[maxNmbrOuputs];                                            // create a number of outputs, eg 2, one for serial, and one for network
-    static constexpr uint32_t length = 4;                                        // length of the items circular buffer
-    logItem items[length];                                                       // create an array of items to be logged
-    uint32_t head{0};                                                            // readIndex of the items circular buffer
-    uint32_t level{0};                                                           // filling level of the items circular buffer
-    void setOutput(uint32_t outputIndex, bool (*aFunction)(const char*));        // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
-    void setTimeSource(bool (*aFunction)(char*, uint32_t));                      // sets a pointer to a function providing the timestamp prefix string.
-
-    // void setIndentLevel(uint32_t newLevel);
-    // uint32_t getIndentLevel();
+    void setOutput(uint32_t outputIndex, bool (*aFunction)(const char*));                                     // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
+    void setTimeSource(bool (*aFunction)(char*, uint32_t));                                                   // sets a pointer to a function providing the timestamp prefix string.
+    void setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel);        //
+    loggingLevel getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem);        //
+    void setColoredOutput(uint32_t outputIndex, bool newSetting);                                             // set the colorize output option
+    bool isColoredOutput(uint32_t outputIndex);                                             // set the colorize output option
+    void setIncludeTimestamp(uint32_t outputIndex, bool newSetting);                                          // set the includeTimestamp option
+    bool hasTimestampIncluded(uint32_t outputIndex);                                          // set the includeTimestamp option
 
     // ------------------------------
     // logging services
@@ -60,6 +60,7 @@ class uLog {
     void snprintf(subSystem theSubSystem, loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
     void flush();                                                                                 // outputs everything already in the buffer
 
+    bool checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const;        // check if this msg needs to be logged, comparing msg level vs logger level
     // ----------------------------------
     // internal data and helper functions
     // ----------------------------------
@@ -67,20 +68,18 @@ class uLog {
   private:
     bool (*getTime)(char*, uint32_t){nullptr};        // pointer to function returning timestamp as a string
 
-    // char timeStamp[logItem::timestampLength];
+    logOutput outputs[maxNmbrOutputs];        // create a number of outputs, eg 2, one for serial, and one for network
+    logItem items[length];                    // create an array of items to be logged
+    uint32_t head{0};                         // readIndex of the items circular buffer
+    uint32_t level{0};                        // filling level of the items circular buffer
+
     char contents[logItem::maxItemLength];        // in this cstring we will prepare the final contents for each output
     void prepare(uint32_t outputIndex);
 
     uint32_t pushItem();        // returns index of position where to write new item data..
     void popItem();
-    void output();        // send to one or more outputs
-
-    void logTimestamp();        // add timestamp to the buffer
-
+    void output();                                           // send to one or more outputs
     void addColorOutputPrefix(loggingLevel theLevel);        // add color output escape codes
     void addColorOutputPostfix();                            // add color output escape codes
-
     void addLevel(loggingLevel theLoggingLevel);
-
-    bool checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const;        // check if this msg needs to be logged, comparing msg level vs logger level
 };

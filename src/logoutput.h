@@ -12,9 +12,9 @@ class logOutput {
     void setOutputDestination(bool (*aFunction)(const char *));                 // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
     bool isActive() const;                                                      //
     void setColoredOutput(bool newSetting);                                     // set the colorize output option
-    bool isColored() const;                                                     //
+    bool isColoredOutput() const;                                                     //
     void setIncludeTimestamp(bool newSetting);                                  // set the includeTimestamp option
-    bool hasTimestamp() const;                                                  //
+    bool hasTimestampIncluded() const;                                                  //
     void setLoggingLevel(loggingLevel newLevel);                                // set the loggingLevel for a all subsystem
     void setLoggingLevel(subSystem theSubSystem, loggingLevel newLevel);        // set the loggingLevel for a given subsystem
     loggingLevel getLoggingLevel(subSystem theSubSystem) const;                 // returns the current loggingLevel for given subsystem

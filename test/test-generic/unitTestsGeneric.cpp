@@ -4,7 +4,7 @@
 #include "logging.h"
 
 bool outputFunction(const char* contents) {
-    TEST_ASSERT_EQUAL_STRING("lorem ipse", contents)    ;
+    TEST_ASSERT_EQUAL_STRING("lorem ipse", contents);
     return true;
 }
 
@@ -13,40 +13,58 @@ bool loggingTime(char* contents, uint32_t length) {
     return true;
 }
 
-void test_logoutput_initialization() {
+void test_logOutput_initialization() {
     logOutput anOutput;        // create an instance
     TEST_ASSERT_FALSE(anOutput.isActive());
-    TEST_ASSERT_FALSE(anOutput.isColored());
-    TEST_ASSERT_FALSE(anOutput.hasTimestamp());
+    TEST_ASSERT_FALSE(anOutput.isColoredOutput());
+    TEST_ASSERT_FALSE(anOutput.hasTimestampIncluded());
     TEST_ASSERT_EQUAL_UINT8(loggingLevel::None, anOutput.getLoggingLevel(subSystem::general));
 }
 
-void test_logoutput_settings() {
+void test_logOutput_settings() {
     logOutput anOutput;        // create an instance
     anOutput.setOutputDestination(outputFunction);
     TEST_ASSERT_TRUE(anOutput.isActive());
     anOutput.setOutputDestination(nullptr);
     TEST_ASSERT_FALSE(anOutput.isActive());
     anOutput.setColoredOutput(false);
-    TEST_ASSERT_FALSE(anOutput.isColored());
+    TEST_ASSERT_FALSE(anOutput.isColoredOutput());
     anOutput.setColoredOutput(true);
-    TEST_ASSERT_TRUE(anOutput.isColored());
+    TEST_ASSERT_TRUE(anOutput.isColoredOutput());
     anOutput.setIncludeTimestamp(false);
-    TEST_ASSERT_FALSE(anOutput.hasTimestamp());
+    TEST_ASSERT_FALSE(anOutput.hasTimestampIncluded());
     anOutput.setIncludeTimestamp(true);
-    TEST_ASSERT_TRUE(anOutput.hasTimestamp());
+    TEST_ASSERT_TRUE(anOutput.hasTimestampIncluded());
     anOutput.setLoggingLevel(loggingLevel::Warning);
     anOutput.setLoggingLevel(subSystem::machine, loggingLevel::Critical);
     TEST_ASSERT_EQUAL_UINT8(loggingLevel::Warning, anOutput.getLoggingLevel(subSystem::general));
     TEST_ASSERT_EQUAL_UINT8(loggingLevel::Critical, anOutput.getLoggingLevel(subSystem::machine));
 }
 
-void test_logoutput_write() {
+void test_logOutput_write() {
     logOutput anOutput;        // create an instance
     anOutput.setOutputDestination(outputFunction);
     bool result = anOutput.write("lorem ipse");
     TEST_ASSERT_TRUE(result);
 }
+
+void test_uLog_initialization() {
+    uLog aLog;
+    aLog.setOutput(0, outputFunction);
+    aLog.setTimeSource(loggingTime);
+    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);
+    TEST_ASSERT_EQUAL_UINT8(loggingLevel::Warning, aLog.getLoggingLevel(0, subSystem::general));
+}
+
+void test_uLog_api1() {
+    uLog aLog;
+    aLog.setOutput(0, outputFunction);
+    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Warning));
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Error));
+    TEST_ASSERT_FALSE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));
+}
+
 
 // void test_initialization() {
 //     uLog theLog;        // create an instance of the logging object, default parameters
@@ -84,9 +102,12 @@ void test_logoutput_write() {
 
 int main(int argc, char** argv) {
     UNITY_BEGIN();
-    RUN_TEST(test_logoutput_initialization);
-    RUN_TEST(test_logoutput_settings);
-    RUN_TEST(test_logoutput_write);
+    RUN_TEST(test_logOutput_initialization);
+    RUN_TEST(test_logOutput_settings);
+    RUN_TEST(test_logOutput_write);
+    RUN_TEST(test_uLog_initialization);
+    RUN_TEST(test_uLog_api1);
+
     UNITY_END();
 }
 
