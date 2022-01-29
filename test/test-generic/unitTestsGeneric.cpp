@@ -3,8 +3,15 @@
 #include <unity.h>
 #include "logging.h"
 
-bool outputFunction(const char* contents) {
+bool outputFunction0(const char* contents) {
     TEST_ASSERT_EQUAL_STRING("lorem ipse", contents);
+    return true;
+}
+
+bool outputFunction1(const char* contents) {
+    TEST_MESSAGE(contents);
+    uint32_t contentsLength = strlen(contents);
+    TEST_ASSERT_LESS_OR_EQUAL(logItem::maxItemLength, contentsLength);
     return true;
 }
 
@@ -23,7 +30,7 @@ void test_logOutput_initialization() {
 
 void test_logOutput_settings() {
     logOutput anOutput;        // create an instance
-    anOutput.setOutputDestination(outputFunction);
+    anOutput.setOutputDestination(outputFunction0);
     TEST_ASSERT_TRUE(anOutput.isActive());
     anOutput.setOutputDestination(nullptr);
     TEST_ASSERT_FALSE(anOutput.isActive());
@@ -43,62 +50,81 @@ void test_logOutput_settings() {
 
 void test_logOutput_write() {
     logOutput anOutput;        // create an instance
-    anOutput.setOutputDestination(outputFunction);
+    anOutput.setOutputDestination(outputFunction0);
     bool result = anOutput.write("lorem ipse");
     TEST_ASSERT_TRUE(result);
 }
 
 void test_uLog_initialization() {
     uLog aLog;
-    aLog.setOutput(0, outputFunction);
+    aLog.setOutput(0, outputFunction0);
     aLog.setTimeSource(loggingTime);
     aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);
     TEST_ASSERT_EQUAL_UINT8(loggingLevel::Warning, aLog.getLoggingLevel(0, subSystem::general));
 }
 
-void test_uLog_api1() {
+void test_uLog_filtering() {
     uLog aLog;
-    aLog.setOutput(0, outputFunction);
-    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);
-    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Warning));
-    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Error));
-    TEST_ASSERT_FALSE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));
+    // filtering of an individual output
+    aLog.setOutput(0, outputFunction0);                                                            // activate a first output
+    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);                            // give it some level/subsystem settings
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(0, subSystem::general, loggingLevel::Warning));        // same level should be logged
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(0, subSystem::general, loggingLevel::Error));          // higher level should be logged
+    TEST_ASSERT_FALSE(aLog.checkLoggingLevel(0, subSystem::general, loggingLevel::Info));          // lower level should NOT be logged
+
+    // general filtering taking into account all outputs
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Warning));        // same level should be logged
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Error));          // higher level should be logged
+    TEST_ASSERT_FALSE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));          // lower level should NOT be logged
+
+    // now add a second output with
+    aLog.setOutput(1, outputFunction1);
+    aLog.setLoggingLevel(1, subSystem::general, loggingLevel::Info);                            //
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));           // same level should be logged
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Warning));        // higher level should be logged
+    TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Error));          // higher level should be logged
+    TEST_ASSERT_FALSE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Debug));         // lower level should NOT be logged
 }
 
+void test_uLog_circular_buffer() {
+    uLog aLog;
+    TEST_ASSERT_EQUAL_UINT32(0, aLog.level);        // empty after creation
+    TEST_ASSERT_EQUAL_UINT32(0, aLog.head);
 
-// void test_initialization() {
-//     uLog theLog;        // create an instance of the logging object, default parameters
-//     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0, theLog.bufferLevel, "Buffer should be empty after init");
-//     TEST_ASSERT_EQUAL_CHAR_MESSAGE(0, theLog.logBuffer[0], "Buffer should be properly 0-terminated after init");
-// }
+    uint32_t newIndex;
 
-// void test_boundaries() {
-//     uLog theLog;
-//     char tmpStr[theLog.maxItemLength + 4];        // putting some data in the testString
-//     for (int x = 0; x < theLog.maxItemLength + 4; x++) {
-//         tmpStr[x] = '*';
-//     }
-//     tmpStr[theLog.maxItemLength + 3] = 0x00;
-//     theLog.output(subSystems::general, loggingLevel::Critical, tmpStr);                          // add a msg longer than maximum length of an item
-//     TEST_ASSERT_EQUAL_UINT32_MESSAGE(theLog.maxItemLength, theLog.bufferLevel, "");              // check buffer contains not more than maximum length
-//     TEST_ASSERT_EQUAL_CHAR_MESSAGE(theLog.logBuffer[theLog.maxItemLength - 1], 0x00, "");        // check buffer is properly terminated
-// }
+    for (int i = 0; i < aLog.length; i++) {            // fill the buffer
+        TEST_ASSERT_EQUAL_UINT32(0, aLog.head);        // before pushing
+        TEST_ASSERT_EQUAL_UINT32(i, aLog.level);
+        newIndex = aLog.pushItem();
+        TEST_ASSERT_EQUAL_UINT32(i, newIndex);        // after pushing
+        TEST_ASSERT_EQUAL_UINT32(0, aLog.head);
+        TEST_ASSERT_EQUAL_UINT32((i + 1), aLog.level);
+    }
+    newIndex = aLog.pushItem();
+    TEST_ASSERT_EQUAL_UINT32(0, newIndex);        // test overflow
+    TEST_ASSERT_EQUAL_UINT32(0, aLog.head);
+    TEST_ASSERT_EQUAL_UINT32(aLog.length, aLog.level);
 
-// void test_level_filtering() {
-// }
+    for (int i = 0; i < aLog.length; i++) {        // empty the buffer
+        TEST_ASSERT_EQUAL_UINT32(i, aLog.head);
+        TEST_ASSERT_EQUAL_UINT32((aLog.length - i), aLog.level);
+        aLog.popItem();
+        TEST_ASSERT_EQUAL_UINT32((i + 1) % aLog.length, aLog.head);
+        TEST_ASSERT_EQUAL_UINT32((aLog.length - (i + 1)), aLog.level);
+    }
+    aLog.popItem();        // test underflow
+    TEST_ASSERT_EQUAL_UINT32(0, aLog.head);
+    TEST_ASSERT_EQUAL_UINT32(0, aLog.level);
+}
 
-// void test_outputs_available() {
-//      uLog theLog(loggingLevel::Warning);
-//             theLog.output(loggingLevel::Critical, "123");                                                             // output a msg when output is not yet avaialble
-//             theLog.output(loggingLevel::Critical, "456");                                                             // add a second msg
-//             Assert::IsTrue(2 * (theLog.timestampLength + strlen("-Critical-") + 3 + 1) == theLog.bufferLevel);        // do all msgs get concatenated correcly ?
-//             theLog.setOutputIsAvailable(true);                                                                        // now make output available
-//             Assert::IsTrue(theLog.outputIsAvailable);                                                                 // check if setting was modified
-//             Logger::WriteMessage(theLog.logBuffer);
-//             theLog.output(loggingLevel::Critical, "789");        // add a third msg, everything should go to output
-//             Assert::IsTrue(0 == theLog.bufferLevel);             // remaining buffer should be empty
-//             Logger::WriteMessage(theLog.logBuffer);
-// }
+void test_uLog_output() {
+    uLog aLog;
+    aLog.setOutput(0, outputFunction1);
+    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Info);
+    //    aLog.output(subSystem::general, loggingLevel::Info, "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF");
+    aLog.output(subSystem::general, loggingLevel::Info, "0123456789ABCDEF                                                                                                0123456789ABCDEF");
+}
 
 int main(int argc, char** argv) {
     UNITY_BEGIN();
@@ -106,77 +132,8 @@ int main(int argc, char** argv) {
     RUN_TEST(test_logOutput_settings);
     RUN_TEST(test_logOutput_write);
     RUN_TEST(test_uLog_initialization);
-    RUN_TEST(test_uLog_api1);
-
+    RUN_TEST(test_uLog_filtering);
+    RUN_TEST(test_uLog_circular_buffer);
+    RUN_TEST(test_uLog_output);
     UNITY_END();
 }
-
-// TEST_CLASS(C01_LoggingTests) {
-//   public:
-//     TEST_METHOD(T03_CheckLogLevelFilter) {
-//         {
-//             uLog theLog(loggingLevel::Warning);
-//             theLog.log(loggingLevel::Info, "some info");        // message 'below' level should not be logged...
-//             Assert::IsTrue(0 == theLog.bufferLevel);
-//             theLog.log(loggingLevel::Warning, "some warning");        // message with same level should be logged
-//             Assert::IsTrue(0 < theLog.bufferLevel);
-//         }
-//         {
-//             uLog theLog(loggingLevel::Warning);
-//             theLog.log(loggingLevel::Critical, "some critical error");        // message with higher level should be logged as well
-//             Assert::IsTrue(0 < theLog.bufferLevel);
-//         }
-//     }
-
-//     TEST_METHOD(T04_CheckLoggingItems) {
-//         {
-//             uLog theLog(loggingLevel::Warning);
-//             theLog.log(loggingLevel::Critical, "0123456789");        // add a msg of exactly 10 bytes
-//             Assert::IsTrue((theLog.timestampLength + strlen("-Critical-") + 10 + 1) == theLog.bufferLevel);
-//         }
-//         {
-//             uLog theLog(loggingLevel::Warning);
-//             theLog.log(loggingLevel::Critical, "123");                                                                // add a first msg
-//             theLog.log(loggingLevel::Critical, "456");                                                                // add a second msg
-//             Assert::IsTrue(2 * (theLog.timestampLength + strlen("-Critical-") + 3 + 1) == theLog.bufferLevel);        // do all msgs get concatenated correcly ?
-//         }
-//     }
-
-//     TEST_METHOD(T05_OutputAvailable) {
-//         {
-
-//         }
-//     }
-
-//     TEST_METHOD(T06_Timestamp) {
-//         {
-//             uLog theLog(loggingLevel::Warning, false);           // create a logger with timestamp disabled
-//             theLog.setIncludeTimestamp(true);                    // now activate timestamp
-//             Assert::IsTrue(theLog.includeTimestamp);             // is timestamp properly enabled ?
-//             theLog.output(loggingLevel::Critical, "123");        // add a msg, should now have timestamp.. note : unit test under windows will not have a real timestamp - refer to unit test on target for this
-//             Logger::WriteMessage(theLog.logBuffer);
-//             Assert::IsTrue((theLog.timestampLength + strlen("-Critical-") + 3 + 1) == theLog.bufferLevel);        // check buffer contains timestamp, - and logged text
-//         }
-//     }
-
-//     TEST_METHOD(T07_BufferOverflowRobustness) {
-//     }
-
-//     TEST_METHOD(T08_BufferOverflowRobustness) {
-//         uLog theLog(loggingLevel::Warning);        // create a logger
-//         char tmpStr[2];
-//         tmpStr[0] = '*';
-//         tmpStr[1] = 0x00;        // putting some data in the testString
-//         for (int x = 0; x < (theLog.bufferLength + 4); x++) {
-//             theLog.output(loggingLevel::Critical, tmpStr);        // add msgs until buffer is full
-//         }
-//         Assert::IsTrue(theLog.bufferLength <= theLog.bufferLevel);                                    // check buffer contains not more than maximum length
-//         Assert::IsTrue(strnlen(theLog.logBuffer, theLog.bufferLength) <= theLog.bufferLength);        // check buffer is properly terminated
-//     }
-
-//     TEST_METHOD(T09_snprintf) {
-//         uLog theLog(loggingLevel::Warning);                                                                   // create a logger
-//         theLog.snprintf(loggingLevel::Critical, "test %d", 123);                                              // add a printf style msg
-//         Assert::IsTrue((theLog.timestampLength + strlen("-Critical-") + 8 + 1) == theLog.bufferLevel);        // check buffer contains not more than maximum length
-//                                                                                                               // TODO : add some tests to check the robustness of vsnprintf for limiting output to the output buffer available
-//     }

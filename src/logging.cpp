@@ -12,6 +12,38 @@
 #include <stdio.h>          // required for vsnprintf()
 #include "logging.h"        //
 
+#ifndef strlcpy
+// on some platforms, string.h does not contain strlcpy, so in this case we add it here directly
+size_t
+strlcpy(char *dst, const char *src, size_t maxlen) {
+    const size_t srclen = strlen(src);
+    if (srclen + 1 < maxlen) {
+        memcpy(dst, src, srclen + 1);
+    } else if (maxlen != 0) {
+        memcpy(dst, src, maxlen - 1);
+        dst[maxlen - 1] = '\0';
+    }
+    return srclen;
+}
+#endif
+
+#ifndef strlcat
+// on some platforms, string.h does not contain strlcpy, so in this case we add it here directly
+size_t
+strlcat(char * dst, const char * src, size_t maxlen) {
+    const size_t srclen = strlen(src);
+    const size_t dstlen = strnlen(dst, maxlen);
+    if (dstlen == maxlen) return maxlen+srclen;
+    if (srclen < maxlen-dstlen) {
+        memcpy(dst+dstlen, src, srclen+1);
+    } else {
+        memcpy(dst+dstlen, src, maxlen-1);
+        dst[dstlen+maxlen-1] = '\0';
+    }
+    return dstlen + srclen;
+}
+#endif
+
 uLog::uLog() {
 }
 
@@ -27,10 +59,22 @@ bool uLog::checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLev
     return result;
 }
 
-void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char* aText) {
-    if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {
+bool uLog::checkLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel) const {
+    bool result{false};
+    if (outputIndex < maxNmbrOutputs) {
+        if (outputs[outputIndex].isActive()) {
+            if (itemLoggingLevel <= outputs[outputIndex].getLoggingLevel(theSubSystem)) {
+                result = true;
+            }
+        }
+    }
+    return result;
+}
+
+void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *aText) {
+    if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {        // if any output is interested in this item, we store it in the buffer
         uint32_t newItemIndex = pushItem();
-        strncpy(items[newItemIndex].contents, aText, logItem::maxItemLength);
+        strlcpy(items[newItemIndex].contents, aText, logItem::maxItemLength);
         items[newItemIndex].theLoggingLevel = itemLoggingLevel;
         items[newItemIndex].theSubSystem    = theSubSystem;
 
@@ -42,7 +86,7 @@ void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char
     }
 }
 
-void uLog::output(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char* aText) {
+void uLog::output(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *aText) {
     log(theSubSystem, itemLoggingLevel, aText);
     output();
 }
@@ -103,21 +147,28 @@ void uLog::addColorOutputPrefix(loggingLevel itemLoggingLevel) {
 
 void uLog::addColorOutputPostfix() {
     if (strnlen(contents, logItem::maxItemLength) <= (logItem::maxItemLength - 4U)) {
-        strncat(contents, "\033[0m", 4U);
+        strcat(contents, "\033[0m");
     } else {
         strncpy((contents + (logItem::maxItemLength - 4U)), "\033[0m", 4U);
     }
 }
 
 void uLog::popItem() {
-    head  = (head + 1) % length;
-    level = level - 1;
-}
-uint32_t uLog::pushItem() {
-    return 0;
+    if (level > 0) {
+        level = level - 1;
+        head  = (head + 1) % length;
+    }
 }
 
-void uLog::prepare(uint32_t outputIndex) {
+uint32_t uLog::pushItem() {
+    uint32_t newIndex = ((head + level) % length);
+    if (level < length) {
+        level = level + 1;
+    }
+    return newIndex;
+}
+
+void uLog::format(uint32_t outputIndex) {
     contents[0] = 0;        // clear temp buffer
 
     if (outputs[outputIndex].isColoredOutput()) {
@@ -162,11 +213,11 @@ void uLog::addLevel(loggingLevel theLoggingLevel) {
     }
 }
 
-void uLog::setTimeSource(bool (*aFunction)(char*, uint32_t)) {
+void uLog::setTimeSource(bool (*aFunction)(char *, uint32_t)) {
     getTime = aFunction;
 }
 
-void uLog::setOutput(uint32_t outputIndex, bool (*aFunction)(const char*)) {
+void uLog::setOutput(uint32_t outputIndex, bool (*aFunction)(const char *)) {
     if (outputIndex < maxNmbrOutputs) {
         outputs[outputIndex].setOutputDestination(aFunction);
     }
