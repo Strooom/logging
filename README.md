@@ -30,5 +30,8 @@ V2.3.0 15-06-2021 : Added colored output option using ANSI escape codes https://
 <<<<<<< HEAD
 
 V4.0.0 21-02-2022 : Added a feature to connect to multiple outputs. Added a set of unit tests.
+<<<<<<< Updated upstream
 =======
 >>>>>>> 103aa41cc8265c35b8d4987bffe9842d9710aa91
+=======
+>>>>>>> Stashed changes
