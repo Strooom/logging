@@ -7,125 +7,102 @@
 // ###                                                                       ###
 // #############################################################################
 
-#include "logging.h"
+#include <stdint.h>         // required for uint8_t and similar type definitions
+#include <string.h>         // required for strncpy()
+#include <stdio.h>          // required for vsnprintf()
+#include "logging.h"        //
 
-void uLog::setLoggingLevel(loggingLevel newLevel) {
-    for (uint8_t i = 0; i < static_cast<uint8_t>(subSystems::nmbrOfSubsystems); i++) {
-        loggingLevels[i] = newLevel;
+#ifndef strlcpy
+// on some platforms, string.h does not contain strlcpy, so in this case we add it here directly
+size_t
+strlcpy(char *dst, const char *src, size_t maxlen) {
+    const size_t srclen = strlen(src);
+    if (srclen + 1 < maxlen) {
+        memcpy(dst, src, srclen + 1);
+    } else if (maxlen != 0) {
+        memcpy(dst, src, maxlen - 1);
+        dst[maxlen - 1] = '\0';
     }
+    return srclen;
 }
+#endif
 
-void uLog::setLoggingLevel(subSystems theSubSystem, loggingLevel newLevel) {
-    loggingLevels[static_cast<uint8_t>(theSubSystem)] = newLevel;
+#ifndef strlcat
+// on some platforms, string.h does not contain strlcpy, so in this case we add it here directly
+size_t
+strlcat(char *dst, const char *src, size_t maxlen) {
+    const size_t srclen = strlen(src);
+    const size_t dstlen = strnlen(dst, maxlen);
+    if (dstlen == maxlen) return maxlen + srclen;
+    if (srclen < maxlen - dstlen) {
+        memcpy(dst + dstlen, src, srclen + 1);
+    } else {
+        memcpy(dst + dstlen, src, maxlen - 1);
+        dst[dstlen + maxlen - 1] = '\0';
+    }
+    return dstlen + srclen;
 }
-
-loggingLevel uLog::getLoggingLevel(subSystems theSubSystem) const {
-    return loggingLevels[static_cast<uint8_t>(theSubSystem)];
-}
-
-void uLog::setOutputIsAvailable(bool newSetting) {
-    outputIsAvailable = newSetting;
-}
-
-void uLog::setIncludeTimestamp(bool newSetting) {
-    includeTimestamp = newSetting;
-}
-
-void uLog::setColoredOutput(bool newSetting) {
-    coloredOutput = newSetting;
-}
-
-void uLog::setIndentLevel(uint32_t newLevel) {
-    indentLevel = newLevel;
-}
-
-uint32_t uLog::getIndentLevel() {
-    return indentLevel;
-}
+#endif
 
 uLog::uLog() {
-    logBuffer[0] = 0x00;        // initialize the logBuffer to empty string
 }
 
-void uLog::log(subSystems theSubSystem, loggingLevel itemLoggingLevel, const char* aText) {
-    if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {
-        uint32_t length = 0;        // keeps track of length of string fragments, goes into strncat()
-
-        if (coloredOutput) {
-            colorOutputPrefix(itemLoggingLevel);
-        }
-
-        if (includeTimestamp) {
-            logTimestamp();
-        }
-
-        char tmpStr[17];        // temporary string to hold the description of the type of message
-
-        switch (itemLoggingLevel) {
-            case loggingLevel::Critical:
-                strncpy(tmpStr, "Critical ", 16);
-                break;
-            case loggingLevel::Error:
-                strncpy(tmpStr, "Error    ", 16);
-                break;
-            case loggingLevel::Warning:
-                strncpy(tmpStr, "Warning  ", 16);
-                break;
-            case loggingLevel::Info:
-                strncpy(tmpStr, "Info     ", 16);
-                break;
-            case loggingLevel::Debug:
-                strncpy(tmpStr, "Debug    ", 16);
-                break;
-            case loggingLevel::None:
-            default:
-                strncpy(tmpStr, "", 16);
-                break;
-        }
-        length = strnlen(tmpStr, 16);
-        if (checkLogBufferLevel(length)) {
-            strncat(logBuffer, tmpStr, length);
-            bufferLevel += length;
-        }
-
-        if ((indentLevel > 0) && (checkLogBufferLevel(indentLevel))) {
-            for (int i = 0; i < indentLevel; i++) {
-                strncat(logBuffer, " ", 1);
+bool uLog::checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const {
+    bool result{false};
+    for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
+        if (outputs[i].isActive()) {
+            if (itemLoggingLevel <= outputs[i].getLoggingLevel(theSubSystem)) {
+                result = true;
             }
-            bufferLevel += indentLevel;
         }
+    }
+    return result;
+}
 
-        length = strnlen(aText, bufferLength);
-        if (checkLogBufferLevel(length)) {
-            strncat(logBuffer, aText, length);
-            bufferLevel += length;
+bool uLog::checkLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel) const {
+    bool result{false};
+    if (outputIndex < maxNmbrOutputs) {
+        if (outputs[outputIndex].isActive()) {
+            if (itemLoggingLevel <= outputs[outputIndex].getLoggingLevel(theSubSystem)) {
+                result = true;
+            }
         }
+    }
+    return result;
+}
 
-        if (coloredOutput) {
-            colorOutputPostfix();
-        }
+void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *aText) {
+    if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {        // if any output is interested in this item, we store it in the buffer
+        uint32_t newItemIndex = pushItem();
+        strlcpy(items[newItemIndex].contents, aText, logItem::maxItemLength);
+        items[newItemIndex].theLoggingLevel = itemLoggingLevel;
+        items[newItemIndex].theSubSystem    = theSubSystem;
 
-        if (checkLogBufferLevel(1)) {
-            strcat(logBuffer, "\n");
-            bufferLevel++;
+        if (getTime != nullptr) {
+            if (getTime(items[newItemIndex].timestamp, logItem::timestampLength)) {
+            } else {
+                strcpy(items[newItemIndex].timestamp, "");
+            }
+        } else {
+            strcpy(items[newItemIndex].timestamp, "");
         }
     }
 }
 
-void uLog::output(subSystems theSubSystem, loggingLevel itemLoggingLevel, const char* aText) {
-    log(theSubSystem, itemLoggingLevel, aText);
-    output();
-}
-
-void uLog::snprintf(subSystems theSubSystem, loggingLevel itemLoggingLevel, const char* format, ...) {
+void uLog::snprintf(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *format, ...) {
     if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {
         va_list argList;
-        char buffer[bufferLength];        // not initialized for performance
+        char buffer[logItem::maxItemLength];        // not initialized for performance
         va_start(argList, format);
-        vsnprintf(buffer, bufferLength, format, argList);
+        vsnprintf(buffer, logItem::maxItemLength, format, argList);
         va_end(argList);
         output(theSubSystem, itemLoggingLevel, buffer);
     }
+}
+
+void uLog::output(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *aText) {
+    log(theSubSystem, itemLoggingLevel, aText);
+    output();
 }
 
 void uLog::flush() {
@@ -133,81 +110,115 @@ void uLog::flush() {
 }
 
 void uLog::output() {
-    if (outputIsAvailable)        // only when output is available can we really send something there. If not we just keep it in the buffer for later..
-    {
-        if (bufferLevel > 0) {
-#ifdef WIN32
-            std::cout << logBuffer;
-#else
-            Serial.print(logBuffer);
-#endif
-            logBuffer[0] = 0x00;        // reset logBuffer to empty string : terminating zero
-            bufferLevel  = 0;           // setting level back to zero
+    if (level > 0) {                                           // if any items in buffer :
+        bool success{false};                                   // remembering if any of the outputs worked
+        for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
+            if (outputs[i].isActive()) {                       // if this output is active..
+                format(i);                                     // format the item according to the output's settings
+                if (outputs[i].write(contents)) {              // and send it out
+                    success = true;
+                }
+            }
+        }
+        if (success) {        // if any of the outputs succeeded...
+            popItem();        // remove the item from the buffer
         }
     }
 }
 
-void uLog::logTimestamp() {
-    char tmpStr[20];        // temporary string storage to prepare a timestamp string
-    char spaces[20];        // temporary string storage to prepare leading spaces
-#ifdef WIN32
-    strcpy(tmpStr, "time");        // on Windows unit testing, we put some dummy value here...
-#else
-    itoa(millis(), tmpStr, 10);        // convert millis to a string
-#endif
-    uint32_t length     = strnlen(tmpStr, timestampLength);        // measure the length of the resulting string
-    uint32_t nmbrSpaces = timestampLength - length;                // calculate how many leading spaces we need
-
-    for (uint8_t x = 0; x < nmbrSpaces; x++) {
-        spaces[x] = ' ';
-    }
-    spaces[nmbrSpaces] = 0x00;
-
-    if (checkLogBufferLevel(timestampLength + 1)) {
-        strcat(logBuffer, spaces);
-        strcat(logBuffer, tmpStr);
-        strcat(logBuffer, "-");
-        bufferLevel += (timestampLength + 1);
+void uLog::popItem() {
+    if (level > 0) {
+        level = level - 1;
+        head  = (head + 1) % length;
     }
 }
 
-bool uLog::checkLoggingLevel(subSystems theSubSystem, loggingLevel itemLoggingLevel) const {
-    return (itemLoggingLevel <= loggingLevels[static_cast<uint8_t>(theSubSystem)]);
+uint32_t uLog::pushItem() {
+    uint32_t newIndex = ((head + level) % length);
+    if (level < length) {
+        level = level + 1;
+    }
+    return newIndex;
 }
 
-bool uLog::checkLogBufferLevel(uint32_t itemLength) const {
-    return (bufferLength >= (bufferLevel + itemLength));
+void uLog::format(uint32_t outputIndex) {
+    contents[0] = 0;        // clear temp buffer
+    if (outputs[outputIndex].isColoredOutput()) {
+        strcpy(contents, colorPrefix(items[head].theLoggingLevel));
+    }
+    if (outputs[outputIndex].hasTimestampIncluded()) {
+        strcat(contents, items[head].timestamp);        // add timestamp string
+    }
+    strcat(contents, toStringShort(items[head].theLoggingLevel));
+    uint32_t tmpLength = strnlen(contents, logItem::maxItemLength);
+
+    // TODO show trunctation with trailing...
+
+    if (outputs[outputIndex].isColoredOutput()) {
+        strncat(contents, items[head].contents, (logItem::maxItemLength - (tmpLength + 5U)));        // add raw contents
+        strcat(contents, colorPostfix());
+    } else {
+        strncat(contents, items[head].contents, (logItem::maxItemLength - (tmpLength + 1U)));        // add raw contents
+    }
+    strcat(contents, "\n");        // final newLine ??
 }
 
-void uLog::colorOutputPrefix(loggingLevel itemLoggingLevel) {
-    if (checkLogBufferLevel(10U)) {
-        switch (itemLoggingLevel) {
-            case loggingLevel::Critical:
-                strncat(logBuffer, "\033[37;41m", 10U);
-                break;
-            case loggingLevel::Error:
-                strncat(logBuffer, "\033[31;40m", 10U);
-                break;
-            case loggingLevel::Warning:
-                strncat(logBuffer, "\033[33;40m", 10U);
-                break;
-            case loggingLevel::Info:
-                strncat(logBuffer, "\033[36;40m", 10U);
-                break;
-            case loggingLevel::Debug:
-                strncat(logBuffer, "\033[37;40m", 10U);
-                break;
-            case loggingLevel::None:
-            default:
-                break;
-        }
-        bufferLevel += 8U;
+void uLog::setTimeSource(bool (*aFunction)(char *, uint32_t)) {
+    getTime = aFunction;
+}
+
+void uLog::setOutput(uint32_t outputIndex, bool (*aFunction)(const char *)) {
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setOutputDestination(aFunction);
     }
 }
 
-void uLog::colorOutputPostfix() {
-    if (checkLogBufferLevel(4U)) {
-        strncat(logBuffer, "\033[0m", 4U);
-        bufferLevel += 4U;
+bool uLog::outputIsActive(uint32_t outputIndex) {
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].isActive();
+    } else {
+        return false;
+    }
+}
+
+void uLog::setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel theLoggingLevel) {
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setLoggingLevel(theSubSystem, theLoggingLevel);
+    }
+}
+
+void uLog::setColoredOutput(uint32_t outputIndex, bool newSetting) {
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setColoredOutput(newSetting);
+    }
+}
+
+void uLog::setIncludeTimestamp(uint32_t outputIndex, bool newSetting) {
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setIncludeTimestamp(newSetting);
+    }
+}
+
+loggingLevel uLog::getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem) {
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].getLoggingLevel(theSubSystem);
+    } else {
+        return loggingLevel::None;
+    }
+}
+
+bool uLog::isColoredOutput(uint32_t outputIndex) {
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].isColoredOutput();
+    } else {
+        return false;
+    }
+}
+
+bool uLog::hasTimestampIncluded(uint32_t outputIndex) {
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].hasTimestampIncluded();
+    } else {
+        return false;
     }
 }

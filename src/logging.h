@@ -23,74 +23,67 @@
 // V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io Arduino target
 // V2.3.0            : Added colored output
 // V3.0.0 03-11-2021 : Added a concept of subsystem, where each subsystem has its own loggingLevel
+// V4.0.0 27-01-2022 : Added the concept of configurable outputs and time provider
 
 #pragma once
 
-#ifndef WIN32
-#include <Arduino.h>
-#else
-#include <inttypes.h>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#endif
-#include <stdarg.h>
-#include "subsystems.h"
-
-enum class loggingLevel : uint8_t {
-    None     = 0,        // Not logging anything at all
-    Critical = 1,        // only logging critical errors
-    Error    = 2,        // logging all errors
-    Warning  = 3,        // logging all warnings and all errors
-    Info     = 4,        // logging errors, warnings and useful info (release)
-    Debug    = 5         // logging everything (including debug info)
-};
+#include <stdarg.h>               // requires for variadic functions
+#include "subsystems.h"           //
+#include "logginglevels.h"        //
+#include "logitem.h"
+#include "logoutput.h"
 
 class uLog {
   public:
     explicit uLog();        // constructor
 
+    static constexpr uint32_t maxNmbrOutputs = 2;        //
+    static constexpr uint32_t length         = 4;        // length of the items circular buffer for items
+
     // ------------------------------
     // configuring the logging object
     // ------------------------------
-    void setLoggingLevel(loggingLevel newLevel);                                 // set the loggingLevel for a all subsystem
-    void setLoggingLevel(subSystems theSubSystem, loggingLevel newLevel);        // set the loggingLevel for a given subsystem
-    loggingLevel getLoggingLevel(subSystems theSubSystem) const;                 // returns the current loggingLevel for given subsystem
-    void setOutputIsAvailable(bool isAvailable);                                 // set the outputIsAvailable
-    void setIncludeTimestamp(bool includeTimestamp);                             // set the includeTimestamp option
-    void setColoredOutput(bool newSetting);
-    void setIndentLevel(uint32_t newLevel);
-    uint32_t getIndentLevel();
+    void setOutput(uint32_t outputIndex, bool (*aFunction)(const char*));                                     // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
+    bool outputIsActive(uint32_t outputIndex);                                                                // is this output active
+    void setTimeSource(bool (*aFunction)(char*, uint32_t));                                                   // sets a pointer to a function providing the timestamp prefix string.
+    void setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel);        //
+    loggingLevel getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem);                               //
+    void setColoredOutput(uint32_t outputIndex, bool newSetting);                                             // set the colorize output option
+    bool isColoredOutput(uint32_t outputIndex);                                                               // set the colorize output option
+    void setIncludeTimestamp(uint32_t outputIndex, bool newSetting);                                          // set the includeTimestamp option
+    bool hasTimestampIncluded(uint32_t outputIndex);                                                          // set the includeTimestamp option
 
     // ------------------------------
     // logging services
     // ------------------------------
-    void log(subSystems theSubSystem, loggingLevel theLevel, const char* aText);                   // appends msg to loggingBuffer whithout trying to output immediately
-    void output(subSystems theSubSystem, loggingLevel theLevel, const char* aText);                // appends msg and tries to output immediately - this output may be blocking
-    void snprintf(subSystems theSubSystem, loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
-    void flush();                                                                                  // outputs everything already in the buffer
+    void log(subSystem theSubSystem, loggingLevel theLevel, const char* aText);                   // appends msg to loggingBuffer whithout trying to output immediately
+    void output(subSystem theSubSystem, loggingLevel theLevel, const char* aText);                // appends msg and tries to output immediately - this output may be blocking
+    void snprintf(subSystem theSubSystem, loggingLevel theLevel, const char* format, ...);        // does a printf() style of output to the logBuffer. It will truncate the output according to the space available in the logBuffer
+    void flush();                                                                                 // outputs everything already in the buffer
 
     // ----------------------------------
     // internal data and helper functions
     // ----------------------------------
 
-#ifndef UnitTesting
-  private:        // commented out during unit testing
+#ifndef unitTest
+  private:
 #endif
-    void output();                                                                                              // send to output, Serial for the time being
-    void logTimestamp();                                                                                        // add timestamp to the buffer
-    void colorOutputPrefix(loggingLevel theLevel);                                                              // add color output escape codes
-    void colorOutputPostfix();                                                                                  // add color output escape codes
-    bool checkLoggingLevel(subSystems theSubSystem, loggingLevel itemLoggingLevel) const;                       // check if this msg needs to be logged, comparing msg level vs logger level
-    bool checkLogBufferLevel(uint32_t itemLength) const;                                                        // check if there is sufficient space in the buffer to add the msg
-    static constexpr uint32_t maxItemLength = 128;                                                              // Maximum length of new item to be logged. Will be an upper limit to all C-style string like strnlen()
-    static constexpr uint32_t bufferLength  = 1024;                                                             // Length of the buffer to temporarily store the logging data, until being sent to an ouptut
-    char logBuffer[bufferLength + 1];                                                                           // buffer to store logdata when output is not yet available. + 1 for terminating zero
-    uint32_t bufferLevel = 0;                                                                                   // keeping track of how much data is in the buffer
-    loggingLevel loggingLevels[static_cast<uint8_t>(subSystems::nmbrOfSubsystems)]{loggingLevel::Error};        // controls what amount of information to log : from nothing to everything. Default is 'errors'
-    bool outputIsAvailable = false;                                                                             // by default the output is not available and needs to be activated first
-    bool includeTimestamp  = false;                                                                             // by default the output lines are not prefixed with a timestamp
-    bool coloredOutput{false};                                                                                  // by default the output lines are not colored - only intended for Visual Studio Code terminal
-    static constexpr uint32_t timestampLength = 6;                                                              // number of digits to use for timestamps
-    uint32_t indentLevel{0};
+    bool checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const;                              // check if this msg needs to be logged, comparing msg level vs logger level
+    bool checkLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel) const;        // check if this msg needs to be sent to this output, comparing msg level vs logger level
+    bool (*getTime)(char*, uint32_t){nullptr};                                                                        // pointer to function returning timestamp as a string
+
+    logOutput outputs[maxNmbrOutputs];        // create a number of outputs, eg 2, one for serial, and one for network
+    logItem items[length];                    // create an array of items to be logged
+    uint32_t head{0};                         // readIndex of the items circular buffer
+    uint32_t level{0};                        // filling level of the items circular buffer
+
+    char contents[logItem::maxItemLength];        // in this cstring we will format the final contents for each output
+    void format(uint32_t outputIndex);
+
+    uint32_t pushItem();        // returns index of position where to write new item data..
+    void popItem();
+    void output();                                           // send to one or more outputs
+    void addColorOutputPrefix(loggingLevel theLevel);        // add color output escape codes
+    void addColorOutputPostfix();                            // add color output escape codes
+    void addLevel(loggingLevel theLoggingLevel);
 };
