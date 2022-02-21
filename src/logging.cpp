@@ -30,15 +30,15 @@ strlcpy(char *dst, const char *src, size_t maxlen) {
 #ifndef strlcat
 // on some platforms, string.h does not contain strlcpy, so in this case we add it here directly
 size_t
-strlcat(char * dst, const char * src, size_t maxlen) {
+strlcat(char *dst, const char *src, size_t maxlen) {
     const size_t srclen = strlen(src);
     const size_t dstlen = strnlen(dst, maxlen);
-    if (dstlen == maxlen) return maxlen+srclen;
-    if (srclen < maxlen-dstlen) {
-        memcpy(dst+dstlen, src, srclen+1);
+    if (dstlen == maxlen) return maxlen + srclen;
+    if (srclen < maxlen - dstlen) {
+        memcpy(dst + dstlen, src, srclen + 1);
     } else {
-        memcpy(dst+dstlen, src, maxlen-1);
-        dst[dstlen+maxlen-1] = '\0';
+        memcpy(dst + dstlen, src, maxlen - 1);
+        dst[dstlen + maxlen - 1] = '\0';
     }
     return dstlen + srclen;
 }
@@ -81,8 +81,22 @@ void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char
         if (getTime != nullptr) {
             if (getTime(items[newItemIndex].timestamp, logItem::timestampLength)) {
             } else {
+                strcpy(items[newItemIndex].timestamp, "");
             }
+        } else {
+            strcpy(items[newItemIndex].timestamp, "");
         }
+    }
+}
+
+void uLog::snprintf(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *format, ...) {
+    if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {
+        va_list argList;
+        char buffer[logItem::maxItemLength];        // not initialized for performance
+        va_start(argList, format);
+        vsnprintf(buffer, logItem::maxItemLength, format, argList);
+        va_end(argList);
+        output(theSubSystem, itemLoggingLevel, buffer);
     }
 }
 
@@ -90,17 +104,6 @@ void uLog::output(subSystem theSubSystem, loggingLevel itemLoggingLevel, const c
     log(theSubSystem, itemLoggingLevel, aText);
     output();
 }
-
-// void uLog::snprintf(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char* format, ...) {
-//     if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {
-//         va_list argList;
-//         char buffer[bufferLength];        // not initialized for performance
-//         va_start(argList, format);
-//         vsnprintf(buffer, bufferLength, format, argList);
-//         va_end(argList);
-//         output(theSubSystem, itemLoggingLevel, buffer);
-//     }
-// }
 
 void uLog::flush() {
     output();
@@ -110,46 +113,16 @@ void uLog::output() {
     if (level > 0) {                                           // if any items in buffer :
         bool success{false};                                   // remembering if any of the outputs worked
         for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
-            if (outputs[i].isActive()) {
-                if (outputs[i].write(items[head].contents)) {
+            if (outputs[i].isActive()) {                       // if this output is active..
+                format(i);                                     // format the item according to the output's settings
+                if (outputs[i].write(contents)) {              // and send it out
                     success = true;
                 }
             }
         }
-        if (success) {
-            popItem();
+        if (success) {        // if any of the outputs succeeded...
+            popItem();        // remove the item from the buffer
         }
-    }
-}
-
-void uLog::addColorOutputPrefix(loggingLevel itemLoggingLevel) {
-    switch (itemLoggingLevel) {
-        case loggingLevel::Critical:
-            strncat(contents, "\033[37;41m", 10U);
-            break;
-        case loggingLevel::Error:
-            strncat(contents, "\033[31;40m", 10U);
-            break;
-        case loggingLevel::Warning:
-            strncat(contents, "\033[33;40m", 10U);
-            break;
-        case loggingLevel::Info:
-            strncat(contents, "\033[36;40m", 10U);
-            break;
-        case loggingLevel::Debug:
-            strncat(contents, "\033[37;40m", 10U);
-            break;
-        case loggingLevel::None:
-        default:
-            break;
-    }
-}
-
-void uLog::addColorOutputPostfix() {
-    if (strnlen(contents, logItem::maxItemLength) <= (logItem::maxItemLength - 4U)) {
-        strcat(contents, "\033[0m");
-    } else {
-        strncpy((contents + (logItem::maxItemLength - 4U)), "\033[0m", 4U);
     }
 }
 
@@ -170,47 +143,24 @@ uint32_t uLog::pushItem() {
 
 void uLog::format(uint32_t outputIndex) {
     contents[0] = 0;        // clear temp buffer
-
     if (outputs[outputIndex].isColoredOutput()) {
-        addColorOutputPrefix(items[head].theLoggingLevel);
+        strcpy(contents, colorPrefix(items[head].theLoggingLevel));
     }
-
     if (outputs[outputIndex].hasTimestampIncluded()) {
         strcat(contents, items[head].timestamp);        // add timestamp string
     }
+    strcat(contents, toStringShort(items[head].theLoggingLevel));
+    uint32_t tmpLength = strnlen(contents, logItem::maxItemLength);
 
-    addLevel(items[head].theLoggingLevel);
-
-    strncat(contents, items[head].contents, 100U);        // add raw contents
+    // TODO show trunctation with trailing...
 
     if (outputs[outputIndex].isColoredOutput()) {
-        addColorOutputPostfix();
+        strncat(contents, items[head].contents, (logItem::maxItemLength - (tmpLength + 5U)));        // add raw contents
+        strcat(contents, colorPostfix());
+    } else {
+        strncat(contents, items[head].contents, (logItem::maxItemLength - (tmpLength + 1U)));        // add raw contents
     }
-
     strcat(contents, "\n");        // final newLine ??
-}
-
-void uLog::addLevel(loggingLevel theLoggingLevel) {
-    switch (theLoggingLevel) {
-        case loggingLevel::Critical:
-            strcat(contents, "C ");
-            break;
-        case loggingLevel::Error:
-            strcat(contents, "E ");
-            break;
-        case loggingLevel::Warning:
-            strcat(contents, "W ");
-            break;
-        case loggingLevel::Info:
-            strcat(contents, "I ");
-            break;
-        case loggingLevel::Debug:
-            strcat(contents, "D ");
-            break;
-        case loggingLevel::None:
-        default:
-            break;
-    }
 }
 
 void uLog::setTimeSource(bool (*aFunction)(char *, uint32_t)) {
@@ -223,26 +173,52 @@ void uLog::setOutput(uint32_t outputIndex, bool (*aFunction)(const char *)) {
     }
 }
 
+bool uLog::outputIsActive(uint32_t outputIndex) {
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].isActive();
+    } else {
+        return false;
+    }
+}
+
 void uLog::setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel theLoggingLevel) {
-    outputs[outputIndex].setLoggingLevel(theSubSystem, theLoggingLevel);
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setLoggingLevel(theSubSystem, theLoggingLevel);
+    }
 }
 
 void uLog::setColoredOutput(uint32_t outputIndex, bool newSetting) {
-    outputs[outputIndex].setColoredOutput(newSetting);
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setColoredOutput(newSetting);
+    }
 }
 
 void uLog::setIncludeTimestamp(uint32_t outputIndex, bool newSetting) {
-    outputs[outputIndex].setIncludeTimestamp(newSetting);
+    if (outputIndex < maxNmbrOutputs) {
+        outputs[outputIndex].setIncludeTimestamp(newSetting);
+    }
 }
 
 loggingLevel uLog::getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem) {
-    return outputs[outputIndex].getLoggingLevel(theSubSystem);
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].getLoggingLevel(theSubSystem);
+    } else {
+        return loggingLevel::None;
+    }
 }
 
 bool uLog::isColoredOutput(uint32_t outputIndex) {
-    return outputs[outputIndex].isColoredOutput();
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].isColoredOutput();
+    } else {
+        return false;
+    }
 }
 
 bool uLog::hasTimestampIncluded(uint32_t outputIndex) {
-    return outputs[outputIndex].hasTimestampIncluded();
+    if (outputIndex < maxNmbrOutputs) {
+        return outputs[outputIndex].hasTimestampIncluded();
+    } else {
+        return false;
+    }
 }

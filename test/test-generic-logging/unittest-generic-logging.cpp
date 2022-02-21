@@ -1,4 +1,4 @@
-#define UnitTesting
+#define unitTest
 #include <string.h>
 #include <unity.h>
 #include "logging.h"
@@ -16,49 +16,22 @@ bool outputFunction1(const char* contents) {
 }
 
 bool loggingTime(char* contents, uint32_t length) {
-    strcpy(contents, "123");
+    strcpy(contents, "2022-01-29T19:46:51Z");
     return true;
 }
 
-void test_logOutput_initialization() {
-    logOutput anOutput;        // create an instance
-    TEST_ASSERT_FALSE(anOutput.isActive());
-    TEST_ASSERT_FALSE(anOutput.isColoredOutput());
-    TEST_ASSERT_FALSE(anOutput.hasTimestampIncluded());
-    TEST_ASSERT_EQUAL_UINT8(loggingLevel::None, anOutput.getLoggingLevel(subSystem::general));
-}
-
-void test_logOutput_settings() {
-    logOutput anOutput;        // create an instance
-    anOutput.setOutputDestination(outputFunction0);
-    TEST_ASSERT_TRUE(anOutput.isActive());
-    anOutput.setOutputDestination(nullptr);
-    TEST_ASSERT_FALSE(anOutput.isActive());
-    anOutput.setColoredOutput(false);
-    TEST_ASSERT_FALSE(anOutput.isColoredOutput());
-    anOutput.setColoredOutput(true);
-    TEST_ASSERT_TRUE(anOutput.isColoredOutput());
-    anOutput.setIncludeTimestamp(false);
-    TEST_ASSERT_FALSE(anOutput.hasTimestampIncluded());
-    anOutput.setIncludeTimestamp(true);
-    TEST_ASSERT_TRUE(anOutput.hasTimestampIncluded());
-    anOutput.setLoggingLevel(loggingLevel::Warning);
-    anOutput.setLoggingLevel(subSystem::machine, loggingLevel::Critical);
-    TEST_ASSERT_EQUAL_UINT8(loggingLevel::Warning, anOutput.getLoggingLevel(subSystem::general));
-    TEST_ASSERT_EQUAL_UINT8(loggingLevel::Critical, anOutput.getLoggingLevel(subSystem::machine));
-}
-
-void test_logOutput_write() {
-    logOutput anOutput;        // create an instance
-    anOutput.setOutputDestination(outputFunction0);
-    bool result = anOutput.write("lorem ipse");
-    TEST_ASSERT_TRUE(result);
-}
+/*
+2022-01-29T19:46:51+00:00
+2022-01-29T19:46:51Z
+20220129T194651Z
+*/
 
 void test_uLog_initialization() {
     uLog aLog;
     aLog.setOutput(0, outputFunction0);
+    TEST_ASSERT_EQUAL(nullptr, aLog.getTime);
     aLog.setTimeSource(loggingTime);
+    TEST_ASSERT_NOT_EQUAL(nullptr, aLog.getTime);
     aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);
     TEST_ASSERT_EQUAL_UINT8(loggingLevel::Warning, aLog.getLoggingLevel(0, subSystem::general));
 }
@@ -121,19 +94,48 @@ void test_uLog_circular_buffer() {
 void test_uLog_output() {
     uLog aLog;
     aLog.setOutput(0, outputFunction1);
+    aLog.setColoredOutput(0, false);
+    aLog.setIncludeTimestamp(0, true);
     aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Info);
     //    aLog.output(subSystem::general, loggingLevel::Info, "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF");
-    aLog.output(subSystem::general, loggingLevel::Info, "0123456789ABCDEF                                                                                                0123456789ABCDEF");
+    aLog.output(subSystem::general, loggingLevel::Info, "00 - 0123456789 01 - 0123456789 02 - 0123456789 03 - 0123456789 04 - 0123456789 05 - 0123456789 06 - 0123456789 07 - 0123456789 ");
+}
+
+void test_uLog_getTime() {
+    uLog aLog;
+    aLog.setOutput(0, outputFunction1);
+    // aLog.setTimeSource(loggingTime);
+    aLog.setColoredOutput(0, false);
+    aLog.setIncludeTimestamp(0, true);
+    aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Info);
+    //    aLog.output(subSystem::general, loggingLevel::Info, "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF");
+    aLog.output(subSystem::general, loggingLevel::Info, "00 - 0123456789 01 - 0123456789 02 - 0123456789 03 - 0123456789 04 - 0123456789 05 - 0123456789 06 - 0123456789 07 - 0123456789 ");
+}
+
+void test_uLog_boundaries() {
+    uLog aLog;
+    uint32_t indexOutOfBounds = aLog.maxNmbrOutputs;        // valid indexes are 0 .. (maxNmbrOutputs - 1)
+
+    aLog.setOutput(indexOutOfBounds, outputFunction1);
+    TEST_ASSERT_FALSE(aLog.outputIsActive(indexOutOfBounds));
+
+    aLog.setLoggingLevel(indexOutOfBounds, subSystem::general, loggingLevel::Info);
+    TEST_ASSERT_EQUAL(loggingLevel::None, aLog.getLoggingLevel(indexOutOfBounds, subSystem::general));
+
+    aLog.setColoredOutput(indexOutOfBounds, true);
+    TEST_ASSERT_FALSE(aLog.isColoredOutput(indexOutOfBounds));
+
+    aLog.setIncludeTimestamp(indexOutOfBounds, true);
+    TEST_ASSERT_FALSE(aLog.hasTimestampIncluded(indexOutOfBounds));
 }
 
 int main(int argc, char** argv) {
     UNITY_BEGIN();
-    RUN_TEST(test_logOutput_initialization);
-    RUN_TEST(test_logOutput_settings);
-    RUN_TEST(test_logOutput_write);
     RUN_TEST(test_uLog_initialization);
     RUN_TEST(test_uLog_filtering);
     RUN_TEST(test_uLog_circular_buffer);
     RUN_TEST(test_uLog_output);
+    RUN_TEST(test_uLog_getTime);
+    RUN_TEST(test_uLog_boundaries);
     UNITY_END();
 }

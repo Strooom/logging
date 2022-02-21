@@ -10,3 +10,8 @@ enum class loggingLevel : uint8_t {
     Debug    = 5,        // logging everything (including debug info)
     nmbrLoggingLevels
 };
+
+const char* toString(loggingLevel aLoggingLevel);
+const char* toStringShort(loggingLevel aLoggingLevel);
+const char* colorPrefix(loggingLevel itemLoggingLevel);
+const char* colorPostfix();

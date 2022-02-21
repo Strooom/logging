@@ -44,6 +44,7 @@ class uLog {
     // configuring the logging object
     // ------------------------------
     void setOutput(uint32_t outputIndex, bool (*aFunction)(const char*));                                     // sets a pointer to a function handling the output of the logging to eg serial, network or file on SD card, etc.
+    bool outputIsActive(uint32_t outputIndex);                                                                // is this output active
     void setTimeSource(bool (*aFunction)(char*, uint32_t));                                                   // sets a pointer to a function providing the timestamp prefix string.
     void setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel);        //
     loggingLevel getLoggingLevel(uint32_t outputIndex, subSystem theSubSystem);                               //
