@@ -1,4 +1,5 @@
-[![Arduino CI](https://github.com/strooom/logging/workflows/Arduino%20Library%20Checks/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
+![ArduinoLint](https://github.com/strooom/logging/workflows/Arduino%20Library%20Checks/badge.svg)
+![UnitTestNative](https://github.com/strooom/logging/workflows/Unit%20Tests%20Generic/badge.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/strooom/logging?color=green)
 
 # logging
@@ -26,5 +27,8 @@ V2.1.0 11-11-2020 : Added the concept of a stack for loggingLevels (currently fi
 V2.2.0 05-12-2020 : Added output to std::cout when compiled for Win32 io. Arduino target
 
 V2.3.0 15-06-2021 : Added colored output option using ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit This needs 'monitor_flags = --raw' in platformio.ini
+<<<<<<< HEAD
 
 V4.0.0 21-02-2022 : Added a feature to connect to multiple outputs. Added a set of unit tests.
+=======
+>>>>>>> 103aa41cc8265c35b8d4987bffe9842d9710aa91

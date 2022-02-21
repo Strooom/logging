@@ -8,25 +8,44 @@
 // #############################################################################
 
 #include <Arduino.h>
-#include <logging.h>											// Step 1. add an #include to include the library into your project
+#include <logging.h>        // Step 1. add an #include to include the library into your project
 
-uLog theLog;													// Step 2. Create a global object to log things, before any other code or global objects. 
+uLog theLog;        // Step 2. Create a global object to log things, before any other code or global objects.
 
-void setup()
-    {
-	theLog.output(subSystem::general, loggingLevel::Info, "Entering Setup()\n");	// Step 3. Add logging statements in your code. This msg will be logged, even if Serial is not yet configured
-
-	Serial.begin(115200);										//		Configure Serial, which is the output channel for this example
-	Serial.flush();												//		Clean up the Serial output
-	Serial.println();											//		Start output with a clean line
-	delay(250);													//		Wait 250ms - just to show how the timestamping in the log output works
-
-	theLog.setOutputIsAvailable(true);							// Step 4. Tell theLog that from now on the output is working, so from now on it can send it's logged contents there
-	theLog.output(subSystem::general, loggingLevel::Info, "Exiting Setup()\n");		// Step 5. Adds another msg to the log, then outputs everyting
-	}
-
-void loop()
-    {
+bool outputToSerial(const char* contents) {        // Step 3. Add a function which sends the output of the logging to the right hw channel, eg Serial port
+    size_t nmbrBytesSent;
+    nmbrBytesSent = Serial.print(contents);
+    if (nmbrBytesSent > 0) {
+        return true;
+    } else {
+        return false;
     }
+}
 
+bool loggingTime(char* contents, uint32_t length) {        // Step 4. Add a function which generates a timestamp string, so your logging events can get timestamped. Simple example is using millis()
+    itoa(millis(), contents, 10);                          // convert millis to a string
+    return true;
+}
 
+void setup() {
+    theLog.setTimeSource(loggingTime);        // Step 5. Tell theLog to send its output to the "outputToSerial(char * contents)" function in this application
+    theLog.setLoggingLevel(0, subSystem::general, loggingLevel::Debug);
+    theLog.setColoredOutput(0, true);
+    theLog.output(subSystem::general, loggingLevel::Info, "Entering Setup()");
+
+    Serial.begin(115200);        //		Configure Serial, which is the output channel for this example
+    Serial.flush();              //		Clean up the Serial output
+    delay(3000);
+    theLog.setOutput(0U, outputToSerial);                                                // Step 4. Tell theLog to send its output to the "outputToSerial(char * contents)" function in this application
+    theLog.output(subSystem::general, loggingLevel::Info, "Exiting Setup(\n\n)");        // Step 6. Adds another msg to the log, then outputs everyting
+    theLog.output(subSystem::general, loggingLevel::Debug, "Some output");               // Step 6. Adds another msg to the log, then outputs everyting
+    theLog.output(subSystem::general, loggingLevel::Info, "Some output");                // Step 6. Adds another msg to the log, then outputs everyting
+    theLog.output(subSystem::general, loggingLevel::Warning, "Some output");             // Step 6. Adds another msg to the log, then outputs everyting
+    theLog.output(subSystem::general, loggingLevel::Error, "Some output");               // Step 6. Adds another msg to the log, then outputs everyting
+    theLog.output(subSystem::general, loggingLevel::Critical, "Some output");            // Step 6. Adds another msg to the log, then outputs everyting
+}
+
+void loop() {
+    // delay(1000);
+    // Serial.print(".");
+}
