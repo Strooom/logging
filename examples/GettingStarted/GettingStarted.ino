@@ -28,7 +28,7 @@ bool loggingTime(char* contents, uint32_t length) {        // Step 4. Add a func
 }
 
 void setup() {
-    theLog.setTimeSource(loggingTime);        // Step 5. Tell theLog to send its output to the "outputToSerial(char * contents)" function in this application
+    theLog.setTimeSource(loggingTime);        // Step 5. Tell theLog to get its input for timestamps, from this function, defined somewhere in your application
     theLog.setLoggingLevel(0, subSystem::general, loggingLevel::Debug);
     theLog.setColoredOutput(0, true);
     theLog.output(subSystem::general, loggingLevel::Info, "Entering Setup()");
