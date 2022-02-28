@@ -148,6 +148,7 @@ void uLog::format(uint32_t outputIndex) {
     }
     if (outputs[outputIndex].hasTimestampIncluded()) {
         strcat(contents, items[head].timestamp);        // add timestamp string
+        strcat(contents, " ");                          // add a space
     }
     strcat(contents, toStringShort(items[head].theLoggingLevel));
     uint32_t tmpLength = strnlen(contents, logItem::maxItemLength);

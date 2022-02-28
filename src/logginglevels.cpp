@@ -30,22 +30,22 @@ const char* toString(loggingLevel aLoggingLevel) {
 const char* toStringShort(loggingLevel aLoggingLevel) {
     switch (aLoggingLevel) {
         case loggingLevel::None:
-            return " N ";
+            return "N ";
             break;
         case loggingLevel::Critical:
-            return " C ";
+            return "C ";
             break;
         case loggingLevel::Error:
-            return " E ";
+            return "E ";
             break;
         case loggingLevel::Warning:
-            return " W ";
+            return "W ";
             break;
         case loggingLevel::Info:
-            return " I ";
+            return "I ";
             break;
         case loggingLevel::Debug:
-            return " D ";
+            return "D ";
             break;
         case loggingLevel::nmbrLoggingLevels:
         default:
