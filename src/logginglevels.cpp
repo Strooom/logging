@@ -54,10 +54,13 @@ const char* toStringShort(loggingLevel aLoggingLevel) {
     }
 }
 
+// https://misc.flogisoft.com/bash/tip_colors_and_formatting
+
+
 const char* colorPrefix(loggingLevel itemLoggingLevel) {
     switch (itemLoggingLevel) {
         case loggingLevel::Critical:
-            return "\033[37;41m";
+            return "\033[31;1m";
             break;
         case loggingLevel::Error:
             return "\033[31;40m";
@@ -66,7 +69,7 @@ const char* colorPrefix(loggingLevel itemLoggingLevel) {
             return "\033[33;40m";
             break;
         case loggingLevel::Info:
-            return "\033[36;40m";
+            return "\033[32;40m";
             break;
         case loggingLevel::Debug:
             return "\033[37;40m";
