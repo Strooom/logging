@@ -187,6 +187,14 @@ void uLog::setLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, logging
     }
 }
 
+void uLog::setLoggingLevel(uint32_t outputIndex, loggingLevel theLoggingLevel) {
+    if (outputIndex < maxNmbrOutputs) {
+        for (uint8_t subSystemIndex = 0; subSystemIndex < static_cast<uint8_t>(subSystem::nmbrOfSubsystems); subSystemIndex++) {
+            outputs[outputIndex].setLoggingLevel(static_cast<subSystem>(subSystemIndex), theLoggingLevel);
+        }
+    }
+}
+
 void uLog::setColoredOutput(uint32_t outputIndex, bool newSetting) {
     if (outputIndex < maxNmbrOutputs) {
         outputs[outputIndex].setColoredOutput(newSetting);
