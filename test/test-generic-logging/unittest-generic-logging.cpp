@@ -3,6 +3,8 @@
 #include <unity.h>
 #include "logging.h"
 
+// demo
+
 bool outputFunctionTestContents(const char* contents) {
     TEST_ASSERT_EQUAL_STRING("lorem ipse", contents);
     return true;
