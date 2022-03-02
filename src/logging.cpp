@@ -110,6 +110,14 @@ void uLog::flush() {
 }
 
 void uLog::output() {
+// this needs rewriting..
+// as long as there are any items in the buffer .. but we should check not to overload any output..
+// also, each output only outputs if 
+// - it is active
+// - the logginglevel returns true
+//
+
+
     if (level > 0) {                                           // if any items in buffer :
         bool success{false};                                   // remembering if any of the outputs worked
         for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs

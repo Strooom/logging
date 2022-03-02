@@ -3,12 +3,12 @@
 #include <unity.h>
 #include "logging.h"
 
-bool outputFunction0(const char* contents) {
+bool outputFunctionTestContents(const char* contents) {
     TEST_ASSERT_EQUAL_STRING("lorem ipse", contents);
     return true;
 }
 
-bool outputFunction1(const char* contents) {
+bool outputFunctionTestLength(const char* contents) {
     TEST_MESSAGE(contents);
     uint32_t contentsLength = strlen(contents);
     TEST_ASSERT_LESS_OR_EQUAL(logItem::maxItemLength, contentsLength);
@@ -20,6 +20,22 @@ bool loggingTime(char* contents, uint32_t length) {
     return true;
 }
 
+bool outputFunction2(const char* contents) {
+    char tmpMsg[logItem::maxItemLength + 64U];
+    strcpy(tmpMsg, "output 1 ");
+    strncat(tmpMsg, contents, logItem::maxItemLength);
+    TEST_MESSAGE(tmpMsg);
+    return true;
+}
+
+bool outputFunction3(const char* contents) {
+    char tmpMsg[logItem::maxItemLength + 64U];
+    strcpy(tmpMsg, "output 2 ");
+    strncat(tmpMsg, contents, logItem::maxItemLength);
+    TEST_MESSAGE(tmpMsg);
+    return true;
+}
+
 /*
 2022-01-29T19:46:51+00:00
 2022-01-29T19:46:51Z
@@ -28,7 +44,7 @@ bool loggingTime(char* contents, uint32_t length) {
 
 void test_uLog_initialization() {
     uLog aLog;
-    aLog.setOutput(0, outputFunction0);
+    aLog.setOutput(0, outputFunctionTestContents);
     TEST_ASSERT_EQUAL(nullptr, aLog.getTime);
     aLog.setTimeSource(loggingTime);
     TEST_ASSERT_NOT_EQUAL(nullptr, aLog.getTime);
@@ -39,7 +55,7 @@ void test_uLog_initialization() {
 void test_uLog_filtering() {
     uLog aLog;
     // filtering of an individual output
-    aLog.setOutput(0, outputFunction0);                                                            // activate a first output
+    aLog.setOutput(0, outputFunctionTestContents);                                                 // activate a first output
     aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Warning);                            // give it some level/subsystem settings
     TEST_ASSERT_TRUE(aLog.checkLoggingLevel(0, subSystem::general, loggingLevel::Warning));        // same level should be logged
     TEST_ASSERT_TRUE(aLog.checkLoggingLevel(0, subSystem::general, loggingLevel::Error));          // higher level should be logged
@@ -51,7 +67,7 @@ void test_uLog_filtering() {
     TEST_ASSERT_FALSE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));          // lower level should NOT be logged
 
     // now add a second output with
-    aLog.setOutput(1, outputFunction1);
+    aLog.setOutput(1, outputFunctionTestLength);
     aLog.setLoggingLevel(1, subSystem::general, loggingLevel::Info);                            //
     TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Info));           // same level should be logged
     TEST_ASSERT_TRUE(aLog.checkLoggingLevel(subSystem::general, loggingLevel::Warning));        // higher level should be logged
@@ -93,7 +109,7 @@ void test_uLog_circular_buffer() {
 
 void test_uLog_output() {
     uLog aLog;
-    aLog.setOutput(0, outputFunction1);
+    aLog.setOutput(0, outputFunctionTestLength);
     aLog.setColoredOutput(0, false);
     aLog.setIncludeTimestamp(0, true);
     aLog.setLoggingLevel(0, subSystem::general, loggingLevel::Info);
@@ -103,7 +119,7 @@ void test_uLog_output() {
 
 void test_uLog_getTime() {
     uLog aLog;
-    aLog.setOutput(0, outputFunction1);
+    aLog.setOutput(0, outputFunctionTestLength);
     // aLog.setTimeSource(loggingTime);
     aLog.setColoredOutput(0, false);
     aLog.setIncludeTimestamp(0, true);
@@ -116,7 +132,7 @@ void test_uLog_boundaries() {
     uLog aLog;
     uint32_t indexOutOfBounds = aLog.maxNmbrOutputs;        // valid indexes are 0 .. (maxNmbrOutputs - 1)
 
-    aLog.setOutput(indexOutOfBounds, outputFunction1);
+    aLog.setOutput(indexOutOfBounds, outputFunctionTestLength);
     TEST_ASSERT_FALSE(aLog.outputIsActive(indexOutOfBounds));
 
     aLog.setLoggingLevel(indexOutOfBounds, subSystem::general, loggingLevel::Info);
@@ -129,6 +145,19 @@ void test_uLog_boundaries() {
     TEST_ASSERT_FALSE(aLog.hasTimestampIncluded(indexOutOfBounds));
 }
 
+void test_uLog_consumption() {
+    uLog aLog;
+    aLog.setLoggingLevel(0, loggingLevel::Warning);
+    aLog.setOutput(0, outputFunction2);
+    aLog.setLoggingLevel(1, loggingLevel::Error);
+    aLog.setOutput(1, outputFunction3);
+
+    aLog.output(subSystem::general, loggingLevel::Info, "Info");
+    aLog.output(subSystem::general, loggingLevel::Warning, "Warning");
+    aLog.output(subSystem::general, loggingLevel::Error, "Error");
+    aLog.output(subSystem::general, loggingLevel::Critical, "Critical Error");
+}
+
 int main(int argc, char** argv) {
     UNITY_BEGIN();
     RUN_TEST(test_uLog_initialization);
@@ -137,5 +166,6 @@ int main(int argc, char** argv) {
     RUN_TEST(test_uLog_output);
     RUN_TEST(test_uLog_getTime);
     RUN_TEST(test_uLog_boundaries);
+    RUN_TEST(test_uLog_consumption);
     UNITY_END();
 }
