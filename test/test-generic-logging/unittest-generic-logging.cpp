@@ -147,7 +147,7 @@ void test_uLog_boundaries() {
     TEST_ASSERT_FALSE(aLog.hasTimestampIncluded(indexOutOfBounds));
 }
 
-void test_uLog_consumption() {
+void test_uLog_output2() {
     uLog aLog;
     aLog.setLoggingLevel(0, loggingLevel::Warning);
     aLog.setOutput(0, outputFunction2);
@@ -168,6 +168,6 @@ int main(int argc, char** argv) {
     RUN_TEST(test_uLog_output);
     RUN_TEST(test_uLog_getTime);
     RUN_TEST(test_uLog_boundaries);
-    RUN_TEST(test_uLog_consumption);
+    RUN_TEST(test_uLog_output2);
     UNITY_END();
 }

@@ -71,6 +71,10 @@ bool uLog::checkLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggi
     return result;
 }
 
+bool uLog::checkLoggingLevel(uint32_t outputIndex, logItem anItem) const {
+    return checkLoggingLevel(outputIndex, anItem.theSubSystem, anItem.theLoggingLevel);
+}
+
 void uLog::log(subSystem theSubSystem, loggingLevel itemLoggingLevel, const char *aText) {
     if (checkLoggingLevel(theSubSystem, itemLoggingLevel)) {        // if any output is interested in this item, we store it in the buffer
         uint32_t newItemIndex = pushItem();
@@ -110,27 +114,14 @@ void uLog::flush() {
 }
 
 void uLog::output() {
-// this needs rewriting..
-// as long as there are any items in the buffer .. but we should check not to overload any output..
-// also, each output only outputs if 
-// - it is active
-// - the logginglevel returns true
-//
-
-
-    if (level > 0) {                                           // if any items in buffer :
-        bool success{false};                                   // remembering if any of the outputs worked
-        for (uint32_t i = 0; i < maxNmbrOutputs; i++) {        // for all outputs
-            if (outputs[i].isActive()) {                       // if this output is active..
-                format(i);                                     // format the item according to the output's settings
-                if (outputs[i].write(contents)) {              // and send it out
-                    success = true;
-                }
+    while (level > 0) {                                                                                    // if any items in buffer :
+        for (uint32_t outputIndex = 0; outputIndex < maxNmbrOutputs; outputIndex++) {                      // for all outputs
+            if (outputs[outputIndex].isActive() && (checkLoggingLevel(outputIndex, items[head]))) {        // if this output is active and it wants this level of logitem..
+                format(outputIndex);                                                                       // format the item according to the output's settings
+                (void)outputs[outputIndex].write(contents);
             }
         }
-        if (success) {        // if any of the outputs succeeded...
-            popItem();        // remove the item from the buffer
-        }
+        popItem();        // remove the item from the buffer
     }
 }
 

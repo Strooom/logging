@@ -71,6 +71,7 @@ class uLog {
 #endif
     bool checkLoggingLevel(subSystem theSubSystem, loggingLevel itemLoggingLevel) const;                              // check if this msg needs to be logged, comparing msg level vs logger level
     bool checkLoggingLevel(uint32_t outputIndex, subSystem theSubSystem, loggingLevel itemLoggingLevel) const;        // check if this msg needs to be sent to this output, comparing msg level vs logger level
+    bool checkLoggingLevel(uint32_t outputIndex, logItem anItem) const;                                               // check if this output wants this msg, based upon it's loggingLevel
     bool (*getTime)(char*, uint32_t){nullptr};                                                                        // pointer to function returning timestamp as a string
 
     logOutput outputs[maxNmbrOutputs];        // create a number of outputs, eg 2, one for serial, and one for network
