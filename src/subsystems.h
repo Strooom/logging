@@ -19,5 +19,6 @@ enum class subSystem : uint8_t {
     user,
     certificate,
     reservations,
+	version,
     nmbrOfSubsystems
 };
